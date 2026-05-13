@@ -47,16 +47,19 @@ export default function BeginnerPage() {
         c.levelId === beginnerLevelId || c.levelId === ''
       );
       
-      const topicItems: TopicItem[] = levelCategories.map((cat) => ({
-        id: cat.slug,
-        title: cat.name,
-        slug: cat.slug,
-        icon: <BookOpen size={20} />,
-      }));
+      const topicItems: TopicItem[] = [
+        { id: 'all', title: 'All', slug: '', icon: <Shuffle size={20} /> },
+        ...levelCategories.map((cat) => ({
+          id: cat.slug,
+          title: cat.name,
+          slug: cat.slug,
+          icon: <BookOpen size={20} />,
+        })),
+      ];
       
       if (topicItems.length > 0) {
         setTopics(topicItems);
-        setActiveTopic(topicItems[0].slug);
+        setActiveTopic('all');
       } else {
         setTopics([{ id: 'all', title: 'All', slug: '', icon: <Shuffle size={20} /> }]);
         setActiveTopic('all');
@@ -71,36 +74,43 @@ export default function BeginnerPage() {
 
   const loadVocabulary = async () => {
     try {
-      const purchasedLevels = userData?.purchasedLevels || [];
       const dbLevels = await dbService.getLevels();
-      const levelIdMap = new Map(dbLevels.map((l, idx) => [idx + 1, l.id]));
-      const unlockedLevelIds = purchasedLevels.map(idx => levelIdMap.get(idx) || '');
+      const beginnerLevelId = dbLevels[0]?.id || '1';
       
-      const filters: { levelIds?: string[]; category?: string } = {};
-      if (unlockedLevelIds.length > 0) {
-        filters.levelIds = unlockedLevelIds;
-      }
-      if (activeTopic !== 'all' && activeTopic) {
-        filters.category = activeTopic;
+      let filters: { levelId?: string; category?: string } = {};
+      
+      if (activeTopic === 'all') {
+        filters = { levelId: beginnerLevelId };
+      } else if (activeTopic) {
+        filters = { levelId: beginnerLevelId, category: activeTopic };
       }
       
       const items = await dbService.getVocabulary(filters);
       setVocabulary(items);
       setCurrentIndex(0);
     } catch (e) {
-      console.log('Error loading vocabulary');
+      console.log('Error loading vocabulary:', e);
       setVocabulary([]);
     }
   };
 
   const items = vocabulary;
-  const currentItem = items[currentIndex] || { word: '', wordKinyarwanda: '', translations: {}, pronunciation: '' };
+  const currentItem = items[currentIndex] || { 
+    word: '', 
+    wordKinyarwanda: '', 
+    translations: {}, 
+    pronunciation: '' 
+  };
 
   const nextCard = () => setCurrentIndex((prev) => (prev + 1) % items.length);
   const prevCard = () => setCurrentIndex((prev) => (prev - 1 + items.length) % items.length);
 
   const getTranslation = (item: VocabType) => {
     return item.translations?.[preferredLang] || item.translations?.en || item.word || '';
+  };
+
+  const getDisplayWord = (item: VocabType) => {
+    return item.wordKinyarwanda || item.word || '';
   };
 
   return (
@@ -169,7 +179,7 @@ export default function BeginnerPage() {
                     <div className="p-8 min-h-[320px] flex items-center justify-center">
                       <div className="text-center w-full">
                         <div className="text-4xl font-bold text-gray-900 mb-4" style={{ fontFamily: 'Georgia, serif' }}>
-                          {currentItem.wordKinyarwanda}
+                          {getDisplayWord(currentItem)}
                         </div>
                         {currentItem.pronunciation && (
                           <div className="text-lg text-gray-400 italic mb-4">
