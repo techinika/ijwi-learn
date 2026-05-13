@@ -47,7 +47,7 @@ export interface Test {
   levelId: string;
   title: string;
   questions: TestQuestion[];
-  difficulty: 'beginner' | 'intermediate' | 'advanced';
+  difficulty: string;
   passingScore: number;
 }
 
