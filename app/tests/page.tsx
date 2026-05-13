@@ -4,7 +4,7 @@ import { useState, useEffect } from 'react';
 import Link from 'next/link';
 import Navbar from '@/components/Navbar';
 import { useAuth } from '@/context/AuthContext';
-import { dbService, Level } from '@/lib/database';
+import { dbService, Level, Difficulty } from '@/lib/database';
 import { ArrowLeft, Award, CheckCircle, XCircle, RefreshCw, GraduationCap, MessageCircle, BookOpen, BookMarked, ArrowRight, Lightbulb, Target, TrendingUp, Play } from 'lucide-react';
 import { generateTestQuestions } from '@/lib/content';
 
@@ -18,7 +18,7 @@ interface LevelInfo {
   id: number;
   title: string;
   color: string;
-  difficulty: 'beginner' | 'intermediate' | 'advanced';
+  difficulty: string;
   nextLevel: string | null;
 }
 
@@ -32,6 +32,7 @@ export default function TestsPage() {
   const [showRecommendation, setShowRecommendation] = useState(false);
   const [recommendationLevel, setRecommendationLevel] = useState<string | null>(null);
   const [levels, setLevels] = useState<LevelInfo[]>([]);
+  const [difficulties, setDifficulties] = useState<Difficulty[]>([]);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
@@ -40,13 +41,17 @@ export default function TestsPage() {
 
   const loadLevels = async () => {
     try {
-      const dbLevels = await dbService.getLevels();
+      const [dbLevels, dbDifficulties] = await Promise.all([
+        dbService.getLevels(),
+        dbService.getDifficulties(),
+      ]);
+      setDifficulties(dbDifficulties);
       if (dbLevels.length > 0) {
         const mappedLevels = dbLevels.map((l, idx) => ({
           id: idx + 1,
           title: l.title,
           color: l.color,
-          difficulty: 'beginner' as const,
+          difficulty: dbDifficulties[0]?.slug || 'beginner',
           nextLevel: dbLevels[idx + 1]?.title || null,
         }));
         setLevels(mappedLevels);

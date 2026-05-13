@@ -3,13 +3,13 @@
 import { useState, useEffect } from 'react';
 import Navbar from '@/components/Navbar';
 import { useAuth } from '@/context/AuthContext';
-import { dbService, Test, TestQuestion, Level } from '@/lib/database';
+import { dbService, Test, TestQuestion, Level, Difficulty } from '@/lib/database';
 import { ArrowLeft, Plus, Edit, Trash2, Save, X, FileText, CheckCircle } from 'lucide-react';
 
 interface TestFormData {
   title: string;
   levelId: string;
-  difficulty: 'beginner' | 'intermediate' | 'advanced';
+  difficulty: string;
   passingScore: number;
   questions: TestQuestion[];
 }
@@ -17,7 +17,7 @@ interface TestFormData {
 const defaultFormData: TestFormData = {
   title: '',
   levelId: '',
-  difficulty: 'beginner',
+  difficulty: '',
   passingScore: 80,
   questions: [],
 };
@@ -26,6 +26,7 @@ export default function AdminTestsPage() {
   const { isAdmin, isTeacher } = useAuth();
   const [tests, setTests] = useState<Test[]>([]);
   const [levels, setLevels] = useState<Level[]>([]);
+  const [difficulties, setDifficulties] = useState<Difficulty[]>([]);
   const [loading, setLoading] = useState(true);
   const [showForm, setShowForm] = useState(false);
   const [editingTest, setEditingTest] = useState<Test | null>(null);
@@ -38,12 +39,14 @@ export default function AdminTestsPage() {
 
   const loadData = async () => {
     try {
-      const [testsData, levelsData] = await Promise.all([
+      const [testsData, levelsData, difficultiesData] = await Promise.all([
         dbService.getTests(),
         dbService.getLevels(),
+        dbService.getDifficulties(),
       ]);
       setTests(testsData);
       setLevels(levelsData);
+      setDifficulties(difficultiesData);
     } catch (e) {
       console.error('Error loading data:', e);
     }
@@ -204,12 +207,13 @@ export default function AdminTestsPage() {
                     <label className="block text-sm font-medium text-gray-700 mb-2">Difficulty</label>
                     <select
                       value={formData.difficulty}
-                      onChange={e => setFormData(prev => ({ ...prev, difficulty: e.target.value as any }))}
+                      onChange={e => setFormData(prev => ({ ...prev, difficulty: e.target.value }))}
                       className="w-full px-4 py-2 border border-gray-300 rounded-xl focus:ring-2 focus:ring-primary-500 focus:border-transparent"
                     >
-                      <option value="beginner">Beginner</option>
-                      <option value="intermediate">Intermediate</option>
-                      <option value="advanced">Advanced</option>
+                      <option value="">Select a difficulty</option>
+                      {difficulties.map(diff => (
+                        <option key={diff.id} value={diff.slug}>{diff.name}</option>
+                      ))}
                     </select>
                   </div>
                   <div>
