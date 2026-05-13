@@ -3,16 +3,17 @@ import { useState, useEffect } from 'react';
 import Link from 'next/link';
 import Navbar from '@/components/Navbar';
 import { useAuth } from '@/context/AuthContext';
-import { dbService, Difficulty } from '@/lib/database';
+import { dbService, Difficulty, Level } from '@/lib/database';
 import { ArrowLeft, Plus, Edit2, Trash2, Save, X, BarChart3 } from 'lucide-react';
 
 export default function DifficultiesPage() {
   const { isAdmin } = useAuth();
   const [items, setItems] = useState<Difficulty[]>([]);
+  const [levels, setLevels] = useState<Level[]>([]);
   const [loading, setLoading] = useState(true);
   const [showModal, setShowModal] = useState(false);
   const [editing, setEditing] = useState<Difficulty | null>(null);
-  const [form, setForm] = useState({ name: '', nameKinyarwanda: '', slug: '', order: 0, isActive: true });
+  const [form, setForm] = useState({ name: '', nameKinyarwanda: '', slug: '', order: 0, isActive: true, levelId: '' });
 
   useEffect(() => {
     loadAll();
@@ -21,8 +22,12 @@ export default function DifficultiesPage() {
   const loadAll = async () => {
     setLoading(true);
     try {
-      const data = await dbService.getDifficulties();
+      const [data, levelsData] = await Promise.all([
+        dbService.getDifficulties(),
+        dbService.getLevels(),
+      ]);
       setItems(data);
+      setLevels(levelsData);
     } catch (e) {
       console.error('Failed to load difficulties', e);
     }
@@ -30,25 +35,25 @@ export default function DifficultiesPage() {
   };
 
   const openAdd = () => {
-    setForm({ name: '', nameKinyarwanda: '', slug: '', order: items.length + 1, isActive: true });
+    setForm({ name: '', nameKinyarwanda: '', slug: '', order: items.length + 1, isActive: true, levelId: '' });
     setEditing(null);
     setShowModal(true);
   };
 
   const openEdit = (item: Difficulty) => {
-    setForm({ name: item.name, nameKinyarwanda: item.nameKinyarwanda, slug: item.slug, order: item.order, isActive: item.isActive });
+    setForm({ name: item.name, nameKinyarwanda: item.nameKinyarwanda, slug: item.slug, order: item.order, isActive: item.isActive, levelId: item.levelId || '' });
     setEditing(item);
     setShowModal(true);
   };
 
   const handleSave = async () => {
-    if (!form.name || !form.nameKinyarwanda || !form.slug) return;
-    const data = { name: form.name, nameKinyarwanda: form.nameKinyarwanda, slug: form.slug, order: Number(form.order), isActive: form.isActive };
+    if (!form.name || !form.nameKinyarwanda || !form.slug || !form.levelId) return;
+    const data = { name: form.name, nameKinyarwanda: form.nameKinyarwanda, slug: form.slug, order: Number(form.order), isActive: form.isActive, levelId: form.levelId };
     try {
       if (editing) {
         await dbService.updateDifficulty(editing.id, data);
       } else {
-        await dbService.createDifficulty(data);
+        await dbService.createDifficulty(data as any);
       }
       setShowModal(false);
       await loadAll();
@@ -112,6 +117,7 @@ export default function DifficultiesPage() {
                     <th className="text-left px-4 py-3 font-semibold text-gray-600">Name</th>
                     <th className="text-left px-4 py-3 font-semibold text-gray-600">Kinyarwanda</th>
                     <th className="text-left px-4 py-3 font-semibold text-gray-600">Slug</th>
+                    <th className="text-left px-4 py-3 font-semibold text-gray-600">Level</th>
                     <th className="text-center px-4 py-3 font-semibold text-gray-600">Order</th>
                     <th className="text-center px-4 py-3 font-semibold text-gray-600">Active</th>
                     <th className="text-right px-4 py-3 font-semibold text-gray-600">Actions</th>
@@ -121,12 +127,13 @@ export default function DifficultiesPage() {
                   {loading ? (
                     <tr><td colSpan={6} className="text-center py-8 text-gray-400">Loading...</td></tr>
                   ) : items.length === 0 ? (
-                    <tr><td colSpan={6} className="text-center py-8 text-gray-400">No difficulty levels found.</td></tr>
+                    <tr><td colSpan={7} className="text-center py-8 text-gray-400">No difficulty levels found.</td></tr>
                   ) : items.map(item => (
                     <tr key={item.id} className="border-b border-gray-100 hover:bg-gray-50">
                       <td className="px-4 py-3 font-medium text-gray-900">{item.name}</td>
                       <td className="px-4 py-3 text-gray-700">{item.nameKinyarwanda}</td>
                       <td className="px-4 py-3 text-gray-500 font-mono text-xs">{item.slug}</td>
+                      <td className="px-4 py-3 text-gray-700">{levels.find(l => l.id === item.levelId)?.title || 'Not set'}</td>
                       <td className="px-4 py-3 text-center text-gray-700">{item.order}</td>
                       <td className="px-4 py-3 text-center">
                         <span className={`inline-flex items-center px-2.5 py-1 rounded-full text-xs font-medium ${item.isActive ? 'bg-green-100 text-green-700' : 'bg-gray-100 text-gray-500'}`}>
@@ -173,6 +180,13 @@ export default function DifficultiesPage() {
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1">Slug *</label>
                 <input type="text" value={form.slug} onChange={e => setForm(p => ({ ...p, slug: e.target.value }))} className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary-600" placeholder="e.g. beginner" />
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">Level *</label>
+                <select value={form.levelId} onChange={e => setForm(p => ({ ...p, levelId: e.target.value }))} className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary-600">
+                  <option value="">Select level</option>
+                  {levels.map(l => <option key={l.id} value={l.id}>{l.title}</option>)}
+                </select>
               </div>
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1">Order</label>

@@ -16,6 +16,7 @@ interface TestQuestion {
 
 interface LevelInfo {
   id: number;
+  dbId: string;
   title: string;
   color: string;
   difficulty: string;
@@ -32,7 +33,7 @@ export default function TestsPage() {
   const [showRecommendation, setShowRecommendation] = useState(false);
   const [recommendationLevel, setRecommendationLevel] = useState<string | null>(null);
   const [levels, setLevels] = useState<LevelInfo[]>([]);
-  const [difficulties, setDifficulties] = useState<Difficulty[]>([]);
+  const [allDifficulties, setAllDifficulties] = useState<Difficulty[]>([]);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
@@ -45,13 +46,14 @@ export default function TestsPage() {
         dbService.getLevels(),
         dbService.getDifficulties(),
       ]);
-      setDifficulties(dbDifficulties);
+      setAllDifficulties(dbDifficulties);
       if (dbLevels.length > 0) {
         const mappedLevels = dbLevels.map((l, idx) => ({
           id: idx + 1,
+          dbId: l.id,
           title: l.title,
           color: l.color,
-          difficulty: dbDifficulties[0]?.slug || 'beginner',
+          difficulty: dbDifficulties.find(d => d.levelId === l.id)?.slug || 'beginner',
           nextLevel: dbLevels[idx + 1]?.title || null,
         }));
         setLevels(mappedLevels);
@@ -68,7 +70,7 @@ export default function TestsPage() {
 
   const startTest = async (level: number) => {
     const levelData = levels.find(l => l.id === level);
-    const testQuestions = await generateTestQuestions(10, level.toString(), levelData?.difficulty);
+    const testQuestions = await generateTestQuestions(10, levelData?.dbId || '1', levelData?.difficulty);
     setQuestions(testQuestions);
     setSelectedLevel(level);
     setCurrentQuestion(0);
@@ -278,8 +280,7 @@ export default function TestsPage() {
               <p className="text-gray-600 mb-8">Take a test to earn your certificate. You need 80% or higher to pass.</p>
 
 <div className="grid sm:grid-cols-2 gap-5">
-                {levels.map((level) => {
-                  const isUnlocked = purchasedLevels.includes(level.id);
+                {levels.filter(level => purchasedLevels.includes(level.id)).map((level) => {
                   const colorMap: Record<string, string> = {
                     green: 'bg-emerald-500',
                     blue: 'bg-primary-500',
@@ -290,8 +291,8 @@ export default function TestsPage() {
                   return (
                     <div
                       key={level.id}
-                      onClick={() => isUnlocked && startTest(level.id)}
-                      className={`bg-white p-5 rounded-xl border-2 transition-all ${isUnlocked ? 'cursor-pointer hover:shadow-lg hover:border-primary-300 border-gray-200' : 'opacity-60 border-gray-100'}`}
+                      onClick={() => startTest(level.id)}
+                      className="bg-white p-5 rounded-xl border-2 cursor-pointer hover:shadow-lg hover:border-primary-300 border-gray-200 transition-all"
                     >
                       <div className="flex items-center gap-4 mb-4">
                         <div className={`w-12 h-12 ${bgColor} rounded-xl flex items-center justify-center text-white`}>
@@ -302,17 +303,18 @@ export default function TestsPage() {
                           <p className="text-gray-500 text-sm">10 random questions</p>
                         </div>
                       </div>
-                      {isUnlocked ? (
-                        <button className="w-full py-3 bg-primary-600 text-white rounded-xl hover:bg-primary-700 font-medium text-sm shadow-md">
-                      Start Test
-                    </button>
-                      ) : (
-                        <span className="block text-center py-2.5 text-gray-400 text-sm font-medium">Locked</span>
-                      )}
+                      <button className="w-full py-3 bg-primary-600 text-white rounded-xl hover:bg-primary-700 font-medium text-sm shadow-md">
+                        Start Test
+                      </button>
                     </div>
                   );
                 })}
               </div>
+              {purchasedLevels.length === 0 && (
+                <div className="text-center py-8 bg-white rounded-xl border border-gray-200">
+                  <p className="text-gray-500">You need to unlock a level to take tests.</p>
+                </div>
+              )}
           </>
         )}
         </div>

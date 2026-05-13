@@ -3,6 +3,7 @@
 import { useState, useEffect } from 'react';
 import Link from 'next/link';
 import Navbar from '@/components/Navbar';
+import { useAuth } from '@/context/AuthContext';
 import { dbService, Video, Level, VideoCategory } from '@/lib/database';
 import { ArrowLeft, Play, ChevronLeft, X, Clock, BookOpenCheck } from 'lucide-react';
 
@@ -57,6 +58,7 @@ function getLevelInfo(levelId: string, levels: Level[]) {
 }
 
 export default function VideosPage() {
+  const { userData } = useAuth();
   const [selectedLevel, setSelectedLevel] = useState<string>('All');
   const [selectedCategory, setSelectedCategory] = useState<string>('All');
   const [playingVideo, setPlayingVideo] = useState<VideoWithLevel | null>(null);
@@ -64,6 +66,9 @@ export default function VideosPage() {
   const [levels, setLevels] = useState<Level[]>([]);
   const [categories, setCategories] = useState<VideoCategory[]>([]);
   const [loading, setLoading] = useState(true);
+
+const purchasedLevelIds = userData?.purchasedLevels || [];
+  const levelIdMap = new Map(levels.map((l, idx) => [idx + 1, l.id]));
 
   useEffect(() => {
     loadVideos();
@@ -73,7 +78,7 @@ export default function VideosPage() {
     setLoading(true);
     try {
       const [dbVideos, dbLevels, dbCategories] = await Promise.all([
-        dbService.getVideos(),
+        dbService.getVideos({ levelIds: purchasedLevelIds.map(idx => levelIdMap.get(idx) || '') }),
         dbService.getLevels(),
         dbService.getVideoCategories({ isActive: true }),
       ]);
@@ -107,7 +112,10 @@ export default function VideosPage() {
     setLoading(false);
   };
 
-  const levelOptions = ['All', ...levels.map(l => l.title)];
+  const levelOptions = ['All', ...levels.filter(l => {
+    const idx = levels.indexOf(l) + 1;
+    return purchasedLevelIds.includes(idx);
+  }).map(l => l.title)];
   const categoryOptions = ['All', ...categories.map(c => c.name)];
   
   const filteredVideos = videos.filter(v => {

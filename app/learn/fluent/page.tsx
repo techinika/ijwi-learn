@@ -4,13 +4,13 @@ import { useState, useEffect } from 'react';
 import Link from 'next/link';
 import Navbar from '@/components/Navbar';
 import { useAuth } from '@/context/AuthContext';
-import { dbService, Story } from '@/lib/database';
-import type { Difficulty } from '@/lib/database';
+import { dbService, Story, Level, Difficulty } from '@/lib/database';
 import { ArrowLeft, BookOpen, Lock, ChevronLeft, RefreshCw, Image } from 'lucide-react';
 
 export default function FluentPage() {
   const { userData } = useAuth();
   const [stories, setStories] = useState<Story[]>([]);
+  const [allLevels, setAllLevels] = useState<Level[]>([]);
   const [selectedStory, setSelectedStory] = useState<Story | null>(null);
   const [filterDifficulty, setFilterDifficulty] = useState('');
   const [difficulties, setDifficulties] = useState<Difficulty[]>([]);
@@ -20,15 +20,25 @@ export default function FluentPage() {
 
   useEffect(() => {
     loadDifficulties();
+    loadLevels();
   }, []);
 
   useEffect(() => {
     loadStories();
   }, [filterDifficulty]);
 
+  const loadLevels = async () => {
+    try {
+      const levels = await dbService.getLevels();
+      setAllLevels(levels);
+    } catch (e) {
+      console.log('Error loading levels');
+    }
+  };
+
   const loadDifficulties = async () => {
     try {
-      const diffs = await dbService.getDifficulties();
+      const diffs = await dbService.getDifficulties({ levelId: '4' });
       setDifficulties(diffs);
     } catch (e) {
       console.log('Error loading difficulties');
@@ -38,8 +48,16 @@ export default function FluentPage() {
   const loadStories = async () => {
     setLoading(true);
     try {
-      const filters: { levelId?: string; difficulty?: string } = { levelId: '4' };
+      const purchasedLevels = userData?.purchasedLevels || [];
+      const levelIdMap = new Map(allLevels.map((l, idx) => [idx + 1, l.id]));
+      const unlockedLevelIds = purchasedLevels.map(idx => levelIdMap.get(idx) || '');
+      
+      const filters: { levelIds?: string[]; difficulty?: string } = {};
+      if (unlockedLevelIds.length > 0) {
+        filters.levelIds = unlockedLevelIds;
+      }
       if (filterDifficulty) filters.difficulty = filterDifficulty;
+      
       const items = await dbService.getStories(filters);
       setStories(items);
       setSelectedStory(null);

@@ -151,6 +151,7 @@ export interface Difficulty {
   slug: string;
   order: number;
   isActive: boolean;
+  levelId: string;
 }
 
 export interface Language {
@@ -205,7 +206,7 @@ class DatabaseService {
   }
 
   // VOCABULARY
-  async getVocabulary(filters?: { levelId?: string; difficulty?: string; category?: string }): Promise<Vocabulary[]> {
+  async getVocabulary(filters?: { levelIds?: string[]; levelId?: string; difficulty?: string; category?: string }): Promise<Vocabulary[]> {
     let q = query(this.vocabularyCollection, orderBy('word'));
     if (filters?.levelId) {
       q = query(this.vocabularyCollection, where('levelId', '==', filters.levelId), orderBy('word'));
@@ -213,6 +214,9 @@ class DatabaseService {
     const snapshot = await getDocs(q);
     let results = snapshot.docs.map(d => ({ id: d.id, ...d.data() } as Vocabulary));
     
+    if (filters?.levelIds && filters.levelIds.length > 0) {
+      results = results.filter(r => filters.levelIds!.includes(r.levelId));
+    }
     if (filters?.difficulty) {
       results = results.filter(r => r.difficulty === filters.difficulty);
     }
@@ -236,7 +240,7 @@ class DatabaseService {
   }
 
   // STORIES
-  async getStories(filters?: { levelId?: string; difficulty?: string }): Promise<Story[]> {
+  async getStories(filters?: { levelId?: string; levelIds?: string[]; difficulty?: string }): Promise<Story[]> {
     let q = query(this.storiesCollection, orderBy('title'));
     if (filters?.levelId) {
       q = query(this.storiesCollection, where('levelId', '==', filters.levelId), orderBy('title'));
@@ -244,6 +248,9 @@ class DatabaseService {
     const snapshot = await getDocs(q);
     let results = snapshot.docs.map(d => ({ id: d.id, ...d.data() } as Story));
     
+    if (filters?.levelIds && filters.levelIds.length > 0) {
+      results = results.filter(r => filters.levelIds!.includes(r.levelId));
+    }
     if (filters?.difficulty) {
       results = results.filter(r => r.difficulty === filters.difficulty);
     }
@@ -264,7 +271,7 @@ class DatabaseService {
   }
 
   // TESTS
-  async getTests(filters?: { levelId?: string; difficulty?: string }): Promise<Test[]> {
+  async getTests(filters?: { levelId?: string; levelIds?: string[]; difficulty?: string }): Promise<Test[]> {
     let q = query(this.testsCollection);
     if (filters?.levelId) {
       q = query(this.testsCollection, where('levelId', '==', filters.levelId));
@@ -272,6 +279,9 @@ class DatabaseService {
     const snapshot = await getDocs(q);
     let results = snapshot.docs.map(d => ({ id: d.id, ...d.data() } as Test));
     
+    if (filters?.levelIds && filters.levelIds.length > 0) {
+      results = results.filter(r => filters.levelIds!.includes(r.levelId));
+    }
     if (filters?.difficulty) {
       results = results.filter(r => r.difficulty === filters.difficulty);
     }
@@ -395,7 +405,7 @@ class DatabaseService {
   }
 
   // VIDEOS
-  async getVideos(filters?: { levelId?: string; category?: string }): Promise<Video[]> {
+  async getVideos(filters?: { levelId?: string; levelIds?: string[]; category?: string }): Promise<Video[]> {
     let q = query(this.videosCollection, where('isActive', '==', true));
     if (filters?.levelId) {
       q = query(this.videosCollection, where('levelId', '==', filters.levelId), where('isActive', '==', true));
@@ -403,6 +413,9 @@ class DatabaseService {
     const snapshot = await getDocs(q);
     let results = snapshot.docs.map(d => ({ id: d.id, ...d.data() } as Video));
     
+    if (filters?.levelIds && filters.levelIds.length > 0) {
+      results = results.filter(r => filters.levelIds!.includes(r.levelId));
+    }
     if (filters?.category) {
       results = results.filter(r => r.category === filters.category);
     }
@@ -524,10 +537,14 @@ class DatabaseService {
   }
 
   // DIFFICULTIES
-  async getDifficulties(): Promise<Difficulty[]> {
-    const q = query(this.difficultiesCollection, orderBy('order'));
+  async getDifficulties(filters?: { levelId?: string }): Promise<Difficulty[]> {
+    let q = query(this.difficultiesCollection, orderBy('order'));
     const snapshot = await getDocs(q);
-    return snapshot.docs.map(d => ({ id: d.id, ...d.data() } as Difficulty));
+    let results = snapshot.docs.map(d => ({ id: d.id, ...d.data() } as Difficulty));
+    if (filters?.levelId) {
+      results = results.filter(d => d.levelId === filters.levelId);
+    }
+    return results;
   }
 
   async createDifficulty(data: Omit<Difficulty, 'id'>): Promise<string> {
