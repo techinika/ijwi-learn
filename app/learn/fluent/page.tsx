@@ -4,10 +4,9 @@ import { useState, useEffect } from 'react';
 import Link from 'next/link';
 import Navbar from '@/components/Navbar';
 import { useAuth } from '@/context/AuthContext';
-import { dbService } from '@/lib/database';
-import type { Story, Difficulty } from '@/lib/content-types';
-import { getRandomStories } from '@/lib/content';
-import { ArrowLeft, BookOpen, Lock, ChevronLeft, Shuffle, RefreshCw } from 'lucide-react';
+import { dbService, Story } from '@/lib/database';
+import type { Difficulty } from '@/lib/database';
+import { ArrowLeft, BookOpen, Lock, ChevronLeft, RefreshCw, Image } from 'lucide-react';
 
 export default function FluentPage() {
   const { userData } = useAuth();
@@ -15,6 +14,7 @@ export default function FluentPage() {
   const [selectedStory, setSelectedStory] = useState<Story | null>(null);
   const [filterDifficulty, setFilterDifficulty] = useState('');
   const [difficulties, setDifficulties] = useState<Difficulty[]>([]);
+  const [loading, setLoading] = useState(true);
   const canAccess = userData?.purchasedLevels?.includes(4);
   const preferredLang = userData?.preferredLanguage || 'en';
 
@@ -31,24 +31,26 @@ export default function FluentPage() {
       const diffs = await dbService.getDifficulties();
       setDifficulties(diffs);
     } catch (e) {
-      console.log('Using fallback data');
+      console.log('Error loading difficulties');
     }
   };
 
   const loadStories = async () => {
-    const items = await getRandomStories(10, { levelId: '4', difficulty: filterDifficulty || undefined });
-    setStories(items);
-    setSelectedStory(null);
+    setLoading(true);
+    try {
+      const filters: { levelId?: string; difficulty?: string } = { levelId: '4' };
+      if (filterDifficulty) filters.difficulty = filterDifficulty;
+      const items = await dbService.getStories(filters);
+      setStories(items);
+      setSelectedStory(null);
+    } catch (e) {
+      console.log('Error loading stories');
+    }
+    setLoading(false);
   };
 
-  const getTranslation = (story: Story) => {
-    if (!story.sentences || story.sentences.length === 0) return '';
-    return story.sentences.map(s => s.translations?.[preferredLang] || s.translations?.en || '').filter(Boolean).join(' ');
-  };
-
-  const getKinyarwandaPreview = (story: Story) => {
-    if (!story.sentences || story.sentences.length === 0) return '';
-    return story.sentences.map(s => s.kinyarwanda.replace(/\*\*(.+?)\*\*/g, '$1').replace(/\*(.+?)\*/g, '$1')).join(' ');
+  const getTitleTranslation = (story: Story) => {
+    return story.titleTranslations?.[preferredLang] || story.titleTranslations?.en || '';
   };
 
   if (!canAccess) {
@@ -76,113 +78,161 @@ export default function FluentPage() {
     <div className="min-h-screen bg-gray-50">
       <Navbar />
       <main className="pt-28 pb-12 px-4">
-        <div className="max-w-3xl mx-auto">
-          <div className="flex items-center gap-3 mb-8">
-            <Link href="/" className="text-primary-600 hover:underline">
-              <ArrowLeft size={18} />
-            </Link>
-            <h1 className="text-2xl font-bold text-gray-900">Fluent Level</h1>
+        <div className="max-w-5xl mx-auto">
+          <div className="flex items-center justify-between mb-8">
+            <div className="flex items-center gap-3">
+              <Link href="/" className="text-primary-600 hover:underline">
+                <ArrowLeft size={18} />
+              </Link>
+              <h1 className="text-2xl font-bold text-gray-900">Fluent Level</h1>
+            </div>
+            <button
+              onClick={loadStories}
+              className="flex items-center gap-2 px-4 py-2 bg-white border border-gray-200 rounded-lg hover:bg-gray-50 text-sm font-medium"
+            >
+              <RefreshCw size={16} />
+              Refresh
+            </button>
           </div>
 
-          <p className="text-gray-600 mb-6">Read stories to improve your reading comprehension. Stories are randomly selected from the database.</p>
+          <p className="text-gray-600 mb-6">Read stories to improve your reading comprehension.</p>
 
-          <div className="flex items-center justify-between mb-6">
-            <div className="flex gap-2 flex-wrap">
+          <div className="flex gap-2 flex-wrap mb-6">
+            <button
+              onClick={() => setFilterDifficulty('')}
+              className={`px-4 py-2 rounded-full text-sm font-medium transition ${
+                filterDifficulty === ''
+                  ? 'bg-primary-600 text-white'
+                  : 'bg-white text-gray-700 border border-gray-200 hover:border-primary-300'
+              }`}
+            >
+              All
+            </button>
+            {difficulties.map(d => (
               <button
-                onClick={() => setFilterDifficulty('')}
+                key={d.id}
+                onClick={() => setFilterDifficulty(d.slug)}
                 className={`px-4 py-2 rounded-full text-sm font-medium transition ${
-                  filterDifficulty === ''
+                  filterDifficulty === d.slug
                     ? 'bg-primary-600 text-white'
                     : 'bg-white text-gray-700 border border-gray-200 hover:border-primary-300'
                 }`}
               >
-                All Levels
+                {d.name}
               </button>
-              {difficulties.map((diff) => (
-                <button
-                  key={diff.id}
-                  onClick={() => setFilterDifficulty(diff.id)}
-                  className={`px-4 py-2 rounded-full text-sm font-medium transition ${
-                    filterDifficulty === diff.id
-                      ? 'bg-primary-600 text-white'
-                      : 'bg-white text-gray-700 border border-gray-200 hover:border-primary-300'
-                  }`}
-                >
-                  {diff.name}
-                </button>
-              ))}
-            </div>
-            <button 
-              onClick={loadStories}
-              className="flex items-center gap-2 px-4 py-2 bg-purple-100 text-purple-700 rounded-lg hover:bg-purple-200 text-sm font-medium"
-            >
-              <RefreshCw size={16} />
-              Shuffle
-            </button>
+            ))}
           </div>
 
-          {!selectedStory ? (
-            <div className="space-y-4">
-              {stories.map((story) => (
-                <button
-                  key={story.id}
-                  onClick={() => setSelectedStory(story)}
-                  className="w-full bg-white p-5 rounded-xl text-left hover:shadow-md border border-gray-200 transition"
-                >
-                  <div className="flex justify-between items-start mb-3">
-                    <div>
-                      <h3 className="font-semibold text-gray-900">{story.title}</h3>
-                    </div>
-                    <span className="px-3 py-1 rounded-full text-xs font-medium bg-emerald-100 text-emerald-700">
-                      {difficulties.find(d => d.id === story.difficulty)?.name || 'General'}
-                    </span>
-                  </div>
-                  <p className="text-gray-500 text-sm italic line-clamp-2">
-                    &ldquo;{getTranslation(story).substring(0, 100)}...&rdquo;
-                  </p>
-                </button>
-              ))}
-              {stories.length === 0 && (
-                <div className="text-center py-12 text-gray-500">
-                  No stories available. Try a different filter.
+          {loading ? (
+            <div className="text-center py-16">
+              <div className="animate-spin w-10 h-10 border-4 border-primary-600 border-t-transparent rounded-full mx-auto mb-4"></div>
+              <p className="text-gray-500">Loading stories...</p>
+            </div>
+          ) : !selectedStory ? (
+            <>
+              {stories.length === 0 ? (
+                <div className="text-center py-16 bg-white rounded-xl border border-gray-200">
+                  <BookOpen size={48} className="mx-auto mb-4 text-gray-300" />
+                  <h3 className="text-lg font-semibold text-gray-900 mb-2">No Stories Available</h3>
+                  <p className="text-gray-500">Stories will appear here once they're added by an admin.</p>
+                </div>
+              ) : (
+                <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-6">
+                  {stories.map(story => (
+                    <button
+                      key={story.id}
+                      onClick={() => setSelectedStory(story)}
+                      className="bg-white rounded-xl overflow-hidden shadow-sm border border-gray-200 hover:shadow-lg hover:border-primary-300 transition-all text-left"
+                    >
+                      {story.coverImage ? (
+                        <div className="aspect-video bg-gray-100">
+                          <img src={story.coverImage} alt={story.title} className="w-full h-full object-cover" />
+                        </div>
+                      ) : (
+                        <div className="aspect-video bg-gradient-to-br from-primary-100 to-primary-50 flex items-center justify-center">
+                          <BookOpen size={48} className="text-primary-300" />
+                        </div>
+                      )}
+                      <div className="p-5">
+                        <h3 className="font-bold text-gray-900 text-lg mb-2">{story.title || 'Untitled'}</h3>
+                        {getTitleTranslation(story) && (
+                          <p className="text-gray-500 text-sm mb-3">{getTitleTranslation(story)}</p>
+                        )}
+                        <div className="flex items-center gap-2 flex-wrap">
+                          <span className="px-2.5 py-1 bg-primary-100 text-primary-700 rounded-full text-xs font-medium">
+                            {story.difficulty}
+                          </span>
+                          {story.category && (
+                            <span className="px-2.5 py-1 bg-gray-100 text-gray-600 rounded-full text-xs">
+                              {story.category}
+                            </span>
+                          )}
+                        </div>
+                      </div>
+                    </button>
+                  ))}
                 </div>
               )}
-            </div>
+            </>
           ) : (
-            <div className="bg-white rounded-2xl p-6 shadow-lg border border-gray-200">
-              <button onClick={() => setSelectedStory(null)} className="text-primary-600 hover:underline mb-6 flex items-center gap-2 text-sm font-medium">
-                <ChevronLeft size={18} />
-                Back to Stories
-              </button>
-              <h2 className="text-2xl font-bold text-gray-900 mb-6">{selectedStory.title}</h2>
+            <div className="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden">
+              <div className="p-6 border-b border-gray-200 flex items-center justify-between">
+                <div className="flex items-center gap-4">
+                  <button
+                    onClick={() => setSelectedStory(null)}
+                    className="flex items-center gap-2 text-primary-600 hover:underline text-sm font-medium"
+                  >
+                    <ChevronLeft size={18} />
+                    Back to Stories
+                  </button>
+                  <h2 className="text-xl font-bold text-gray-900">{selectedStory.title || 'Untitled'}</h2>
+                </div>
+              </div>
               
-              <div className="space-y-6">
-                {selectedStory.sentences?.map((sentence, idx) => (
-                  <div key={idx} className="pb-6 border-b border-gray-100 last:border-0">
-                    <div className="flex items-start gap-4">
-                      <span className="w-8 h-8 bg-primary-100 text-primary-700 rounded-full flex items-center justify-center text-sm font-bold shrink-0">
-                        {idx + 1}
-                      </span>
-                      <div className="flex-1 space-y-3">
-                        <div>
-                          <p className="text-xs font-semibold text-gray-400 uppercase tracking-wider mb-1">Kinyarwanda</p>
-                          <p className="text-gray-900 leading-relaxed font-medium" dangerouslySetInnerHTML={{
+              {selectedStory.coverImage && (
+                <div className="aspect-video bg-gray-100">
+                  <img src={selectedStory.coverImage} alt={selectedStory.title} className="w-full h-full object-cover" />
+                </div>
+              )}
+              
+              <div className="p-8 max-w-3xl mx-auto">
+                {getTitleTranslation(selectedStory) && (
+                  <p className="text-xl text-gray-500 mb-6 italic">{getTitleTranslation(selectedStory)}</p>
+                )}
+                
+                {selectedStory.content ? (
+                  <div 
+                    className="prose prose-lg max-w-none"
+                    style={{ fontFamily: 'Georgia, serif' }}
+                    dangerouslySetInnerHTML={{ __html: selectedStory.content }}
+                  />
+                ) : (
+                  <div className="space-y-6">
+                    {selectedStory.sentences?.map((sentence, idx) => (
+                      <div key={idx} className="border-b border-gray-100 pb-6 last:border-0">
+                        <p 
+                          className="text-lg text-gray-900 leading-relaxed mb-3"
+                          style={{ fontFamily: 'Georgia, serif' }}
+                          dangerouslySetInnerHTML={{
                             __html: sentence.kinyarwanda
                               .replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>')
                               .replace(/\*(.+?)\*/g, '<em>$1</em>')
-                              .replace(/\n/g, '<br/>')
-                          }} />
-                        </div>
+                          }}
+                        />
                         {sentence.translations?.[preferredLang] && (
-                          <div>
-                            <p className="text-xs font-semibold text-gray-400 uppercase tracking-wider mb-1">Translation</p>
-                            <p className="text-gray-600 leading-relaxed">{sentence.translations[preferredLang]}</p>
-                          </div>
+                          <p className="text-gray-500 leading-relaxed">
+                            {sentence.translations[preferredLang]}
+                          </p>
+                        )}
+                        {sentence.translations?.en && preferredLang !== 'en' && (
+                          <p className="text-gray-400 text-sm mt-1">
+                            English: {sentence.translations.en}
+                          </p>
                         )}
                       </div>
-                    </div>
+                    ))}
                   </div>
-                ))}
+                )}
               </div>
             </div>
           )}

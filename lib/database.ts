@@ -39,6 +39,8 @@ export interface Story {
   difficulty: string;
   category: string;
   sentences: StorySentence[];
+  content: string;
+  coverImage?: string;
   isActive: boolean;
 }
 
