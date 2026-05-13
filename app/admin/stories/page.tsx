@@ -15,6 +15,7 @@ export default function StoriesPage() {
   const [languages, setLanguages] = useState<Language[]>([]);
   const [loading, setLoading] = useState(true);
   const [selectedId, setSelectedId] = useState<string | null>(null);
+  const [isNewStory, setIsNewStory] = useState(false);
   const [searchTerm, setSearchTerm] = useState('');
   const [filterLevel, setFilterLevel] = useState('');
   const [saving, setSaving] = useState(false);
@@ -76,10 +77,12 @@ export default function StoriesPage() {
     setCategory('');
     setIsActive(true);
     setSentences([]);
+    setIsNewStory(false);
   }, []);
 
   const selectStory = async (story: Story) => {
     setSelectedId(story.id);
+    setIsNewStory(false);
     setTitle(story.title);
     setTitleTranslations({ ...story.titleTranslations });
     setLevelId(story.levelId);
@@ -91,6 +94,7 @@ export default function StoriesPage() {
 
   const newStory = () => {
     setSelectedId(null);
+    setIsNewStory(true);
     resetForm();
   };
 
@@ -130,9 +134,11 @@ export default function StoriesPage() {
       if (selectedId) {
         await dbService.updateStory(selectedId, data);
       } else {
-        await dbService.createStory(data);
+        const newId = await dbService.createStory(data as any);
+        setSelectedId(newId);
       }
       await loadStories();
+      setIsNewStory(false);
     } catch (e) {
       console.error('Failed to save story', e);
     }
@@ -257,7 +263,7 @@ export default function StoriesPage() {
 
             {/* Right Panel - Editor */}
             <div className="flex-1 min-w-0">
-              {selectedId === null && !currentStory && (
+              {!isNewStory && selectedId === null && !currentStory && (
                 <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-16 text-center">
                   <BookMarked size={48} className="text-gray-200 mx-auto mb-4" />
                   <h3 className="text-lg font-semibold text-gray-400 mb-1">No Story Selected</h3>
@@ -265,12 +271,12 @@ export default function StoriesPage() {
                 </div>
               )}
 
-              {(selectedId !== null || currentStory) && (
+              {(isNewStory || selectedId !== null || currentStory) && (
                 <div className="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden">
                   <div className="p-6 border-b border-gray-200">
                     <div className="flex items-center justify-between mb-6">
                       <h2 className="text-lg font-bold text-gray-900">
-                        {selectedId ? 'Edit Story' : 'New Story'}
+                        {isNewStory ? 'New Story' : (selectedId ? 'Edit Story' : 'New Story')}
                       </h2>
                       <div className="flex items-center gap-2">
                         {selectedId && (
