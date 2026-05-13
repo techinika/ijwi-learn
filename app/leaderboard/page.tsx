@@ -3,8 +3,8 @@
 import { useState, useEffect } from 'react';
 import Link from 'next/link';
 import Navbar from '@/components/Navbar';
-import { dbService } from '@/lib/database';
-import { ArrowLeft, Trophy, Medal, Crown, BookOpen, GraduationCap, FileText, MessageCircle } from 'lucide-react';
+import { dbService, Level } from '@/lib/database';
+import { ArrowLeft, Trophy, Medal, Crown, BookOpen, GraduationCap, FileText, MessageCircle, Play } from 'lucide-react';
 
 interface LeaderboardUser {
   id: string;
@@ -23,28 +23,35 @@ const categories = [
   { id: 'practice', title: 'Practice', icon: <MessageCircle size={20} /> },
 ];
 
-const levels = [
-  { id: '1', title: 'Beginner', icon: <GraduationCap size={20} /> },
-  { id: '2', title: 'Practice', icon: <MessageCircle size={20} /> },
-  { id: '3', title: 'Intermediate', icon: <BookOpen size={20} /> },
-  { id: '4', title: 'Fluent', icon: <Crown size={20} /> },
+const defaultLevels = [
+  { id: '1', title: 'Beginner' },
+  { id: '2', title: 'Practice' },
+  { id: '3', title: 'Intermediate' },
+  { id: '4', title: 'Fluent' },
 ];
 
 export default function LeaderboardPage() {
   const [selectedCategory, setSelectedCategory] = useState('overall');
   const [selectedLevel, setSelectedLevel] = useState('');
   const [leaderboard, setLeaderboard] = useState<LeaderboardUser[]>([]);
+  const [levels, setLevels] = useState<Level[]>(defaultLevels as Level[]);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    loadLeaderboard();
+    loadData();
   }, [selectedCategory, selectedLevel]);
 
-  const loadLeaderboard = async () => {
+  const loadData = async () => {
     setLoading(true);
     try {
-      const users = await dbService.getUsers();
+      const [users, dbLevels] = await Promise.all([
+        dbService.getUsers(),
+        dbService.getLevels(),
+      ]);
       setLeaderboard(users as any);
+      if (dbLevels.length > 0) {
+        setLevels(dbLevels);
+      }
     } catch (error) {
       console.log('Using fallback leaderboard data');
       setLeaderboard([
@@ -120,7 +127,7 @@ export default function LeaderboardPage() {
                   selectedLevel === level.id ? 'bg-primary-600 text-white' : 'bg-white text-gray-700 border border-gray-200'
                 }`}
               >
-                {level.icon}
+                <Play size={14} />
                 {level.title}
               </button>
             ))}

@@ -104,6 +104,14 @@ export interface Video {
   isActive: boolean;
 }
 
+export interface VideoCategory {
+  id: string;
+  name: string;
+  slug: string;
+  order: number;
+  isActive: boolean;
+}
+
 export interface PointHistory {
   id: string;
   userId: string;
@@ -166,6 +174,7 @@ class DatabaseService {
   private categoriesCollection = collection(db, 'categories');
   private difficultiesCollection = collection(db, 'difficulties');
   private languagesCollection = collection(db, 'languages');
+  private videoCategoriesCollection = collection(db, 'videoCategories');
 
   // LEVELS
   async getLevels(): Promise<Level[]> {
@@ -562,6 +571,30 @@ class DatabaseService {
     const snapshot = await getDocs(q);
     if (snapshot.empty) return null;
     return { id: snapshot.docs[0].id, ...snapshot.docs[0].data() } as Language;
+  }
+
+  // VIDEO CATEGORIES
+  async getVideoCategories(filters?: { isActive?: boolean }): Promise<VideoCategory[]> {
+    let q = query(this.videoCategoriesCollection, orderBy('order'));
+    const snapshot = await getDocs(q);
+    let results = snapshot.docs.map(d => ({ id: d.id, ...d.data() } as VideoCategory));
+    if (filters?.isActive !== undefined) {
+      results = results.filter(r => r.isActive === filters.isActive);
+    }
+    return results;
+  }
+
+  async createVideoCategory(data: Omit<VideoCategory, 'id'>): Promise<string> {
+    const docRef = await addDoc(this.videoCategoriesCollection, data);
+    return docRef.id;
+  }
+
+  async updateVideoCategory(id: string, data: Partial<VideoCategory>): Promise<void> {
+    await updateDoc(doc(this.videoCategoriesCollection, id), data);
+  }
+
+  async deleteVideoCategory(id: string): Promise<void> {
+    await deleteDoc(doc(this.videoCategoriesCollection, id));
   }
 }
 

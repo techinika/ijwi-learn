@@ -3,7 +3,7 @@
 import { useState, useEffect } from 'react';
 import Link from 'next/link';
 import Navbar from '@/components/Navbar';
-import { dbService, Video, Level } from '@/lib/database';
+import { dbService, Video, Level, VideoCategory } from '@/lib/database';
 import { ArrowLeft, Play, ChevronLeft, X, Clock, BookOpenCheck } from 'lucide-react';
 
 interface VideoWithLevel extends Video {
@@ -11,6 +11,7 @@ interface VideoWithLevel extends Video {
   levelColor: string;
   levelTextColor: string;
   levelBgColor: string;
+  categoryName: string;
 }
 
 function formatDuration(seconds: number): string {
@@ -57,9 +58,11 @@ function getLevelInfo(levelId: string, levels: Level[]) {
 
 export default function VideosPage() {
   const [selectedLevel, setSelectedLevel] = useState<string>('All');
+  const [selectedCategory, setSelectedCategory] = useState<string>('All');
   const [playingVideo, setPlayingVideo] = useState<VideoWithLevel | null>(null);
   const [videos, setVideos] = useState<VideoWithLevel[]>([]);
   const [levels, setLevels] = useState<Level[]>([]);
+  const [categories, setCategories] = useState<VideoCategory[]>([]);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
@@ -69,15 +72,18 @@ export default function VideosPage() {
   const loadVideos = async () => {
     setLoading(true);
     try {
-      const [dbVideos, dbLevels] = await Promise.all([
+      const [dbVideos, dbLevels, dbCategories] = await Promise.all([
         dbService.getVideos(),
         dbService.getLevels(),
+        dbService.getVideoCategories({ isActive: true }),
       ]);
       setLevels(dbLevels);
+      setCategories(dbCategories);
       
       if (dbVideos.length > 0) {
         const videosWithLevels: VideoWithLevel[] = dbVideos.map((video) => {
           const level = dbLevels.find(l => l.id === video.levelId);
+          const category = dbCategories.find(c => c.slug === video.category);
           const colorMap: Record<string, string> = {
             green: 'bg-emerald-500',
             blue: 'bg-primary-500',
@@ -90,6 +96,7 @@ export default function VideosPage() {
             levelColor: colorMap[level?.color || 'gray'] || 'bg-gray-500',
             levelTextColor: `text-${level?.color || 'gray'}-700`,
             levelBgColor: `bg-${level?.color || 'gray'}-100`,
+            categoryName: category?.name || video.category || 'Uncategorized',
           };
         });
         setVideos(videosWithLevels);
@@ -101,9 +108,13 @@ export default function VideosPage() {
   };
 
   const levelOptions = ['All', ...levels.map(l => l.title)];
-  const filteredVideos = selectedLevel === 'All' 
-    ? videos 
-    : videos.filter(v => v.levelTitle === selectedLevel);
+  const categoryOptions = ['All', ...categories.map(c => c.name)];
+  
+  const filteredVideos = videos.filter(v => {
+    const levelMatch = selectedLevel === 'All' || v.levelTitle === selectedLevel;
+    const categoryMatch = selectedCategory === 'All' || v.categoryName === selectedCategory;
+    return levelMatch && categoryMatch;
+  });
 
   return (
     <div className="min-h-screen bg-gray-50">
@@ -122,20 +133,41 @@ export default function VideosPage() {
             <p className="text-primary-100">Learn Kinyarwanda through engaging video content</p>
           </div>
 
-          <div className="flex gap-2 flex-wrap mb-8">
-            {levelOptions.map((level) => (
-              <button
-                key={level}
-                onClick={() => setSelectedLevel(level)}
-                className={`px-5 py-2.5 rounded-full text-sm font-semibold transition ${
-                  selectedLevel === level
-                    ? 'bg-primary-600 text-white shadow-md'
-                    : 'bg-white text-gray-700 border border-gray-200 hover:border-primary-300 hover:bg-primary-50'
-                }`}
-              >
-                {level}
-              </button>
-            ))}
+          <div className="space-y-4">
+            <div className="flex gap-2 flex-wrap">
+              <span className="text-sm font-medium text-gray-700 self-center">Level:</span>
+              {levelOptions.map((level) => (
+                <button
+                  key={level}
+                  onClick={() => setSelectedLevel(level)}
+                  className={`px-5 py-2.5 rounded-full text-sm font-semibold transition ${
+                    selectedLevel === level
+                      ? 'bg-primary-600 text-white shadow-md'
+                      : 'bg-white text-gray-700 border border-gray-200 hover:border-primary-300 hover:bg-primary-50'
+                  }`}
+                >
+                  {level}
+                </button>
+              ))}
+            </div>
+            {categories.length > 0 && (
+              <div className="flex gap-2 flex-wrap">
+                <span className="text-sm font-medium text-gray-700 self-center">Category:</span>
+                {categoryOptions.map((cat) => (
+                  <button
+                    key={cat}
+                    onClick={() => setSelectedCategory(cat)}
+                    className={`px-5 py-2.5 rounded-full text-sm font-semibold transition ${
+                      selectedCategory === cat
+                        ? 'bg-emerald-600 text-white shadow-md'
+                        : 'bg-white text-gray-700 border border-gray-200 hover:border-emerald-300 hover:bg-emerald-50'
+                    }`}
+                  >
+                    {cat}
+                  </button>
+                ))}
+              </div>
+            )}
           </div>
 
           {loading ? (

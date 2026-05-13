@@ -3,7 +3,7 @@
 import { useState, useEffect } from 'react';
 import Navbar from '@/components/Navbar';
 import { useAuth } from '@/context/AuthContext';
-import { dbService, Video, Level } from '@/lib/database';
+import { dbService, Video, Level, VideoCategory } from '@/lib/database';
 import { ArrowLeft, Plus, Edit, Trash2, Save, X, Play, Eye, EyeOff } from 'lucide-react';
 
 interface VideoFormData {
@@ -24,23 +24,15 @@ const defaultFormData: VideoFormData = {
   thumbnailUrl: '',
   levelId: '',
   duration: 0,
-  category: 'basics',
+  category: '',
   isActive: true,
 };
-
-const categories = [
-  { value: 'basics', label: 'Basics' },
-  { value: 'phrases', label: 'Phrases' },
-  { value: 'conversation', label: 'Conversation' },
-  { value: 'grammar', label: 'Grammar' },
-  { value: 'stories', label: 'Stories' },
-  { value: 'culture', label: 'Culture' },
-];
 
 export default function AdminVideosPage() {
   const { isAdmin, isTeacher } = useAuth();
   const [videos, setVideos] = useState<Video[]>([]);
   const [levels, setLevels] = useState<Level[]>([]);
+  const [categories, setCategories] = useState<VideoCategory[]>([]);
   const [loading, setLoading] = useState(true);
   const [showForm, setShowForm] = useState(false);
   const [editingVideo, setEditingVideo] = useState<Video | null>(null);
@@ -53,12 +45,14 @@ export default function AdminVideosPage() {
 
   const loadData = async () => {
     try {
-      const [videosData, levelsData] = await Promise.all([
+      const [videosData, levelsData, categoriesData] = await Promise.all([
         dbService.getVideos(),
         dbService.getLevels(),
+        dbService.getVideoCategories({ isActive: true }),
       ]);
       setVideos(videosData);
       setLevels(levelsData);
+      setCategories(categoriesData);
     } catch (e) {
       console.error('Error loading data:', e);
     }
@@ -226,8 +220,9 @@ export default function AdminVideosPage() {
                       onChange={e => setFormData(prev => ({ ...prev, category: e.target.value }))}
                       className="w-full px-4 py-2 border border-gray-300 rounded-xl focus:ring-2 focus:ring-primary-500 focus:border-transparent"
                     >
+                      <option value="">Select a category</option>
                       {categories.map(cat => (
-                        <option key={cat.value} value={cat.value}>{cat.label}</option>
+                        <option key={cat.id} value={cat.slug}>{cat.name}</option>
                       ))}
                     </select>
                   </div>
