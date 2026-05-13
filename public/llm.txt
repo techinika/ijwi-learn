@@ -1,0 +1,110 @@
+# IJWI-LEARN
+
+A modern web application for learning the Kinyarwanda language. The platform offers 4 proficiency levels, interactive lessons, AI-powered conversation practice, video lessons, tests with certificates, teacher chat, and a leaderboard system.
+
+## Tech Stack
+
+- **Framework**: Next.js 16 (App Router)
+- **Language**: TypeScript
+- **Styling**: Tailwind CSS
+- **Database**: Firebase Firestore
+- **Authentication**: Firebase Auth (Google OAuth only)
+- **Payment**: Pesapal (credit/debit cards) + PayPack (MTN/Airtel Rwanda mobile money)
+
+## Key Directories
+
+```
+app/                    # Next.js App Router pages
+├── page.tsx           # Landing page / dashboard
+├── layout.tsx         # Root layout with AuthProvider
+├── globals.css        # Global styles, CSS variables, theme
+├── admin/             # Admin panel (vocabulary, stories, levels CRUD)
+├── certificates/     # Certificate viewing and PDF download
+├── chat/             # Teacher chat interface
+├── leaderboard/      # User leaderboard
+├── learn/            # Learning levels
+│   ├── beginner/     # Vocabulary flashcards
+│   ├── practice/     # AI conversation practice
+│   ├── intermediate/ # Grammar lessons
+│   └── fluent/       # Story reading
+├── tests/            # Level tests (80% to pass)
+├── videos/           # Video lessons
+└── payment/          # Payment success/failure pages
+components/           # Reusable components
+├── Navbar.tsx        # Navigation with user menu
+├── PaymentModal.tsx   # Payment integration modal
+└── Certificate.tsx   # PDF certificate component
+lib/
+├── database.ts       # Firestore service (CRUD for all collections)
+├── content.ts        # Content fetching with fallback data
+├── content-types.ts  # TypeScript interfaces for content
+├── firebase.ts       # Firebase client initialization
+└── certificate.ts    # Certificate PDF generation
+context/
+└── AuthContext.tsx    # Auth state, user data, points system
+```
+
+## Firebase Collections
+
+- `levels` - Learning levels (id, title, description, price, order)
+- `vocabulary` - Words/phrases (levelId, word, wordKinyarwanda, translation, difficulty, category)
+- `stories` - Reading stories (levelId, title, content, contentKinyarwanda, difficulty)
+- `tests` - Pre-written tests (levelId, title, questions[], difficulty, passingScore)
+- `videos` - Video lessons (levelId, title, description, videoUrl, duration, category, isActive)
+- `lessons` - Structured lessons (levelId, title, titleKinyarwanda, type, order)
+- `users` - User profiles (email, displayName, totalPoints, testsCompleted, purchasedLevels, isAdmin, isTeacher)
+- `certificates` - Earned certificates (userId, levelId, levelName, score, certificateId)
+- `pointHistory` - Point transaction log (userId, points, reason, type, createdAt)
+
+## Levels & Pricing
+
+- Beginner (Free) - Basic vocabulary, phrases, numbers
+- Practice ($9.99/mo) - AI conversation practice
+- Intermediate ($14.99/mo) - Grammar, sentence structure
+- Fluent ($19.99/mo) - Stories, advanced comprehension
+
+## Key Features
+
+- 4 progressive learning levels with point tracking
+- AI-powered conversation practice (simulated scenarios)
+- PDF certificate generation on test completion (80%+)
+- Teacher chat for learner support
+- Real-time leaderboard using Firestore onSnapshot
+- Admin dashboard with full CRUD for content management
+- Payment modal with Pesapal (cards) and PayPack (Rwanda mobile money)
+- Points system with history tracking (tests +10, pass bonus +20)
+
+## Points System
+
+- Complete a test: +10 points
+- Pass a test (80%+): +20 bonus points
+- Points tracked in pointHistory collection with type categorization
+- User stats: totalPoints, testsCompleted, consecutivePasses, vocabularyLearned
+
+## Design Tokens
+
+- Primary: #1c4d72 (deep navy blue)
+- Primary Dark: #153a57
+- Secondary: #10B981 (emerald)
+- Accent: #F59E0B (amber)
+- Background: #FAFAFA
+- Font: Plus Jakarta Sans
+- Layout: max-w-5xl centered, pt-28 for fixed navbar clearance
+
+## Routes (App Router)
+
+| Path | Type | Description |
+|------|------|-------------|
+| / | Static | Landing + dashboard |
+| /learn/beginner | Static | Vocabulary flashcards |
+| /learn/practice | Static | AI chat practice |
+| /learn/intermediate | Static | Grammar lessons |
+| /learn/fluent | Static | Story reading |
+| /videos | Static | Video lessons |
+| /tests | Static | Level tests |
+| /certificates | Dynamic | User certificates |
+| /chat | Static | Teacher chat |
+| /leaderboard | Static | User rankings |
+| /admin | Dynamic | Content management |
+| /payment/success | Dynamic | Payment success |
+| /payment/failed | Dynamic | Payment failure |
