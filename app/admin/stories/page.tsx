@@ -85,7 +85,6 @@ export default function StoriesPage() {
     setIsActive(true);
     setContent('');
     setCoverImage('');
-    setIsNewStory(false);
     setShowPreview(false);
   }, []);
 

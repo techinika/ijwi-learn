@@ -69,10 +69,12 @@ export const metadata: Metadata = {
     },
   },
   icons: {
-    icon: "/favicon.ico",
-    shortcut: "/favicon.ico",
+    icon: [
+      { url: '/favicon.ico' },
+      { url: '/icon.svg', type: 'image/svg+xml' },
+    ],
   },
-  manifest: "/site.webmanifest",
+  manifest: "/manifest.json",
   alternates: {
     canonical: siteUrl,
     types: {

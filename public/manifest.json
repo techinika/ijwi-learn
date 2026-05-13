@@ -1,0 +1,16 @@
+{
+  "name": "IJWI-LEARN",
+  "short_name": "IJWI-LEARN",
+  "description": "Learn Kinyarwanda Online",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#ffffff",
+  "theme_color": "#1c4d72",
+  "icons": [
+    {
+      "src": "/icon.svg",
+      "sizes": "any",
+      "type": "image/svg+xml"
+    }
+  ]
+}
