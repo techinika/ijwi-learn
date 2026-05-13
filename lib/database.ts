@@ -344,9 +344,19 @@ class DatabaseService {
     return snapshot.docs.map(d => ({ id: d.id, ...d.data() } as Certificate));
   }
 
+  async getAllCertificates(): Promise<Certificate[]> {
+    const q = query(this.certificatesCollection, orderBy('completedAt', 'desc'));
+    const snapshot = await getDocs(q);
+    return snapshot.docs.map(d => ({ id: d.id, ...d.data() } as Certificate));
+  }
+
   async createCertificate(data: Omit<Certificate, 'id'>): Promise<string> {
     const docRef = await addDoc(this.certificatesCollection, data);
     return docRef.id;
+  }
+
+  async deleteCertificate(id: string): Promise<void> {
+    await deleteDoc(doc(this.certificatesCollection, id));
   }
 
   // Generate random questions from vocabulary

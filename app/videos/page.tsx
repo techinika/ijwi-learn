@@ -3,30 +3,15 @@
 import { useState, useEffect } from 'react';
 import Link from 'next/link';
 import Navbar from '@/components/Navbar';
-import { dbService, Video } from '@/lib/database';
-import { ArrowLeft, Play, GraduationCap, MessageCircle, BookOpen, BookMarked, ChevronLeft, X, Clock, BookOpenCheck } from 'lucide-react';
+import { dbService, Video, Level } from '@/lib/database';
+import { ArrowLeft, Play, ChevronLeft, X, Clock, BookOpenCheck } from 'lucide-react';
 
 interface VideoWithLevel extends Video {
   levelTitle: string;
+  levelColor: string;
+  levelTextColor: string;
+  levelBgColor: string;
 }
-
-const levelConfig = [
-  { id: '1', title: 'Beginner', icon: GraduationCap, color: 'bg-emerald-500', textColor: 'text-emerald-700', bgColor: 'bg-emerald-100' },
-  { id: '2', title: 'Practice', icon: MessageCircle, color: 'bg-primary-500', textColor: 'text-primary-700', bgColor: 'bg-primary-100' },
-  { id: '3', title: 'Intermediate', icon: BookOpen, color: 'bg-purple-500', textColor: 'text-purple-700', bgColor: 'bg-purple-100' },
-  { id: '4', title: 'Fluent', icon: BookMarked, color: 'bg-amber-500', textColor: 'text-amber-700', bgColor: 'bg-amber-100' },
-];
-
-const defaultVideos: VideoWithLevel[] = [
-  { id: '1', levelId: '1', title: 'Basic Greetings', description: 'Learn essential greetings in Kinyarwanda', videoUrl: '', duration: 630, category: 'basics', isActive: true, levelTitle: 'Beginner' },
-  { id: '2', levelId: '1', title: 'Numbers 1-100', description: 'Master counting in Kinyarwanda', videoUrl: '', duration: 945, category: 'basics', isActive: true, levelTitle: 'Beginner' },
-  { id: '3', levelId: '1', title: 'Common Phrases', description: 'Essential phrases for daily conversation', videoUrl: '', duration: 740, category: 'phrases', isActive: true, levelTitle: 'Beginner' },
-  { id: '4', levelId: '2', title: 'Conversation Practice', description: 'Practice real-world conversations', videoUrl: '', duration: 1200, category: 'conversation', isActive: true, levelTitle: 'Practice' },
-  { id: '5', levelId: '3', title: 'Verb Conjugation Basics', description: 'Learn verb conjugation rules', videoUrl: '', duration: 1530, category: 'grammar', isActive: true, levelTitle: 'Intermediate' },
-  { id: '6', levelId: '3', title: 'Noun Classes Explained', description: 'Understanding noun classes in Kinyarwanda', videoUrl: '', duration: 1095, category: 'grammar', isActive: true, levelTitle: 'Intermediate' },
-  { id: '7', levelId: '4', title: 'Reading Stories', description: 'Advanced reading comprehension', videoUrl: '', duration: 1320, category: 'stories', isActive: true, levelTitle: 'Fluent' },
-  { id: '8', levelId: '4', title: 'Cultural Insights', description: 'Learn about Rwandan culture', videoUrl: '', duration: 1800, category: 'culture', isActive: true, levelTitle: 'Fluent' },
-];
 
 function formatDuration(seconds: number): string {
   const mins = Math.floor(seconds / 60);
@@ -34,14 +19,47 @@ function formatDuration(seconds: number): string {
   return `${mins}:${secs.toString().padStart(2, '0')}`;
 }
 
-function getLevelInfo(levelId: string) {
-  return levelConfig.find(l => l.id === levelId) || levelConfig[0];
+function getYouTubeEmbedUrl(url: string): string | null {
+  if (!url) return null;
+  
+  const patterns = [
+    /(?:youtube\.com\/watch\?v=|youtu\.be\/|youtube\.com\/embed\/)([^&\n?#]+)/,
+    /^([a-zA-Z0-9_-]{11})$/,
+  ];
+  
+  for (const pattern of patterns) {
+    const match = url.match(pattern);
+    if (match) {
+      return `https://www.youtube.com/embed/${match[1]}`;
+    }
+  }
+  return null;
+}
+
+function getLevelInfo(levelId: string, levels: Level[]) {
+  const level = levels.find(l => l.id === levelId);
+  if (!level) return { icon: Play, color: 'bg-gray-500', textColor: 'text-gray-700', bgColor: 'bg-gray-100' };
+  
+  const colorMap: Record<string, string> = {
+    green: 'bg-emerald-500',
+    blue: 'bg-primary-500',
+    purple: 'bg-purple-500',
+    amber: 'bg-amber-500',
+  };
+  
+  return {
+    icon: Play,
+    color: colorMap[level.color] || 'bg-gray-500',
+    textColor: `text-${level.color}-700` || 'text-gray-700',
+    bgColor: `bg-${level.color}-100` || 'bg-gray-100',
+  };
 }
 
 export default function VideosPage() {
   const [selectedLevel, setSelectedLevel] = useState<string>('All');
   const [playingVideo, setPlayingVideo] = useState<VideoWithLevel | null>(null);
-  const [videos, setVideos] = useState<VideoWithLevel[]>(defaultVideos);
+  const [videos, setVideos] = useState<VideoWithLevel[]>([]);
+  const [levels, setLevels] = useState<Level[]>([]);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
@@ -51,23 +69,38 @@ export default function VideosPage() {
   const loadVideos = async () => {
     setLoading(true);
     try {
-      const dbVideos = await dbService.getVideos();
+      const [dbVideos, dbLevels] = await Promise.all([
+        dbService.getVideos(),
+        dbService.getLevels(),
+      ]);
+      setLevels(dbLevels);
+      
       if (dbVideos.length > 0) {
-        const videosWithLevels = await Promise.all(
-          dbVideos.map(async (video) => {
-            const level = await dbService.getLevel(video.levelId);
-            return { ...video, levelTitle: level?.title || 'Unknown' };
-          })
-        );
+        const videosWithLevels: VideoWithLevel[] = dbVideos.map((video) => {
+          const level = dbLevels.find(l => l.id === video.levelId);
+          const colorMap: Record<string, string> = {
+            green: 'bg-emerald-500',
+            blue: 'bg-primary-500',
+            purple: 'bg-purple-500',
+            amber: 'bg-amber-500',
+          };
+          return {
+            ...video,
+            levelTitle: level?.title || 'Unknown',
+            levelColor: colorMap[level?.color || 'gray'] || 'bg-gray-500',
+            levelTextColor: `text-${level?.color || 'gray'}-700`,
+            levelBgColor: `bg-${level?.color || 'gray'}-100`,
+          };
+        });
         setVideos(videosWithLevels);
       }
     } catch (error) {
-      console.log('Using default videos');
+      console.log('Error loading videos:', error);
     }
     setLoading(false);
   };
 
-  const levels = ['All', 'Beginner', 'Practice', 'Intermediate', 'Fluent'];
+  const levelOptions = ['All', ...levels.map(l => l.title)];
   const filteredVideos = selectedLevel === 'All' 
     ? videos 
     : videos.filter(v => v.levelTitle === selectedLevel);
@@ -90,7 +123,7 @@ export default function VideosPage() {
           </div>
 
           <div className="flex gap-2 flex-wrap mb-8">
-            {levels.map((level) => (
+            {levelOptions.map((level) => (
               <button
                 key={level}
                 onClick={() => setSelectedLevel(level)}
@@ -121,71 +154,76 @@ export default function VideosPage() {
                   <X size={24} />
                 </button>
               </div>
-              <div className="aspect-video bg-gradient-to-br from-gray-800 to-gray-900 rounded-xl flex items-center justify-center mb-6 relative overflow-hidden">
-                <div className="absolute inset-0 bg-primary-900/30"></div>
-                <div className="relative text-center text-white">
-                  <div className="w-20 h-20 bg-white/20 rounded-full flex items-center justify-center mx-auto mb-4 backdrop-blur-sm">
-                    <Play size={48} className="ml-1" />
+              <div className="aspect-video bg-gradient-to-br from-gray-800 to-gray-900 rounded-xl mb-6 overflow-hidden">
+                {playingVideo.videoUrl ? (
+                  <iframe
+                    src={getYouTubeEmbedUrl(playingVideo.videoUrl) || ''}
+                    className="w-full h-full"
+                    allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+                    allowFullScreen
+                  />
+                ) : (
+                  <div className="flex items-center justify-center h-full">
+                    <div className="text-center text-white">
+                      <div className="w-20 h-20 bg-white/20 rounded-full flex items-center justify-center mx-auto mb-4 backdrop-blur-sm">
+                        <Play size={48} className="ml-1" />
+                      </div>
+                      <div className="text-2xl font-bold">{playingVideo.title}</div>
+                      <div className="text-gray-300 flex items-center justify-center gap-2 mt-2">
+                        <Clock size={16} />
+                        {formatDuration(playingVideo.duration)}
+                      </div>
+                    </div>
                   </div>
-                  <div className="text-2xl font-bold">{playingVideo.title}</div>
-                  <div className="text-gray-300 flex items-center justify-center gap-2 mt-2">
-                    <Clock size={16} />
-                    {formatDuration(playingVideo.duration)}
-                  </div>
-                </div>
+                )}
               </div>
               <h2 className="text-xl font-bold text-gray-900 mb-3">{playingVideo.title}</h2>
               <p className="text-gray-600 mb-4">{playingVideo.description}</p>
               <div className="flex items-center gap-3">
-                {(() => {
-                  const levelInfo = getLevelInfo(playingVideo.levelId);
-                  const LevelIcon = levelInfo.icon;
-                  return (
-                    <>
-                      <span className={`px-3 py-1.5 rounded-full text-xs font-semibold ${levelInfo.bgColor} ${levelInfo.textColor}`}>
-                        <LevelIcon size={14} className="inline mr-1" />
-                        {playingVideo.levelTitle}
-                      </span>
-                      <span className="text-gray-500 text-sm flex items-center gap-1">
-                        <Clock size={14} />
-                        {formatDuration(playingVideo.duration)}
-                      </span>
-                    </>
-                  );
-                })()}
+                <span className={`px-3 py-1.5 rounded-full text-xs font-semibold ${playingVideo.levelBgColor} ${playingVideo.levelTextColor}`}>
+                  {playingVideo.levelTitle}
+                </span>
+                <span className="text-gray-500 text-sm flex items-center gap-1">
+                  <Clock size={14} />
+                  {formatDuration(playingVideo.duration)}
+                </span>
               </div>
             </div>
           ) : filteredVideos.length > 0 ? (
             <div className="grid sm:grid-cols-2 gap-6">
-              {filteredVideos.map((video) => {
-                const levelInfo = getLevelInfo(video.levelId);
-                const LevelIcon = levelInfo.icon;
-                return (
-                  <button
-                    key={video.id}
-                    onClick={() => setPlayingVideo(video)}
-                    className="bg-white rounded-xl p-5 text-left hover:shadow-lg border-2 border-gray-100 hover:border-primary-200 transition-all group"
-                  >
-                    <div className="aspect-video bg-gradient-to-br from-primary-100 to-primary-50 rounded-lg flex items-center justify-center mb-4 group-hover:scale-[1.02] transition-transform">
+              {filteredVideos.map((video) => (
+                <button
+                  key={video.id}
+                  onClick={() => setPlayingVideo(video)}
+                  className="bg-white rounded-xl p-5 text-left hover:shadow-lg border-2 border-gray-100 hover:border-primary-200 transition-all group"
+                >
+                  <div className="aspect-video bg-gradient-to-br from-primary-100 to-primary-50 rounded-lg flex items-center justify-center mb-4 group-hover:scale-[1.02] transition-transform relative overflow-hidden">
+                    {video.thumbnailUrl ? (
+                      <img src={video.thumbnailUrl} alt={video.title} className="w-full h-full object-cover" />
+                    ) : (
                       <div className="w-16 h-16 bg-primary-600 rounded-full flex items-center justify-center text-white shadow-lg">
                         <Play size={28} className="ml-1" />
                       </div>
+                    )}
+                    <div className="absolute inset-0 bg-black/20 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity">
+                      <div className="w-14 h-14 bg-white/90 rounded-full flex items-center justify-center">
+                        <Play size={24} className="text-primary-600 ml-1" />
+                      </div>
                     </div>
-                    <h3 className="font-bold text-gray-900 text-lg mb-2">{video.title}</h3>
-                    <p className="text-gray-500 text-sm mb-3 line-clamp-2">{video.description}</p>
-                    <div className="flex items-center justify-between">
-                      <span className={`px-2.5 py-1 rounded-full text-xs font-medium ${levelInfo.bgColor} ${levelInfo.textColor}`}>
-                        <LevelIcon size={12} className="inline mr-1" />
-                        {video.levelTitle}
-                      </span>
-                      <span className="text-gray-500 text-sm flex items-center gap-1">
-                        <Clock size={14} />
-                        {formatDuration(video.duration)}
-                      </span>
-                    </div>
-                  </button>
-                );
-              })}
+                  </div>
+                  <h3 className="font-bold text-gray-900 text-lg mb-2">{video.title}</h3>
+                  <p className="text-gray-500 text-sm mb-3 line-clamp-2">{video.description}</p>
+                  <div className="flex items-center justify-between">
+                    <span className={`px-2.5 py-1 rounded-full text-xs font-medium ${video.levelBgColor} ${video.levelTextColor}`}>
+                      {video.levelTitle}
+                    </span>
+                    <span className="text-gray-500 text-sm flex items-center gap-1">
+                      <Clock size={14} />
+                      {formatDuration(video.duration)}
+                    </span>
+                  </div>
+                </button>
+              ))}
             </div>
           ) : (
             <div className="text-center py-16 bg-white rounded-2xl border border-gray-200">

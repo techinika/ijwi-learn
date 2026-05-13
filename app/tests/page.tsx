@@ -4,8 +4,8 @@ import { useState, useEffect } from 'react';
 import Link from 'next/link';
 import Navbar from '@/components/Navbar';
 import { useAuth } from '@/context/AuthContext';
-import { dbService } from '@/lib/database';
-import { ArrowLeft, Award, CheckCircle, XCircle, RefreshCw, GraduationCap, MessageCircle, BookOpen, BookMarked, ArrowRight, Lightbulb, Target, TrendingUp } from 'lucide-react';
+import { dbService, Level } from '@/lib/database';
+import { ArrowLeft, Award, CheckCircle, XCircle, RefreshCw, GraduationCap, MessageCircle, BookOpen, BookMarked, ArrowRight, Lightbulb, Target, TrendingUp, Play } from 'lucide-react';
 import { generateTestQuestions } from '@/lib/content';
 
 interface TestQuestion {
@@ -17,18 +17,10 @@ interface TestQuestion {
 interface LevelInfo {
   id: number;
   title: string;
+  color: string;
   difficulty: 'beginner' | 'intermediate' | 'advanced';
   nextLevel: string | null;
 }
-
-const defaultLevels: LevelInfo[] = [
-  { id: 1, title: 'Beginner', difficulty: 'beginner', nextLevel: 'Practice' },
-  { id: 2, title: 'Practice', difficulty: 'intermediate', nextLevel: 'Intermediate' },
-  { id: 3, title: 'Intermediate', difficulty: 'intermediate', nextLevel: 'Fluent' },
-  { id: 4, title: 'Fluent', difficulty: 'advanced', nextLevel: null },
-];
-
-const levelIcons = [GraduationCap, MessageCircle, BookOpen, BookMarked];
 
 export default function TestsPage() {
   const { user, userData, incrementTestsCompleted, incrementConsecutivePasses, resetConsecutivePasses, purchaseLevel } = useAuth();
@@ -39,7 +31,7 @@ export default function TestsPage() {
   const [questions, setQuestions] = useState<TestQuestion[]>([]);
   const [showRecommendation, setShowRecommendation] = useState(false);
   const [recommendationLevel, setRecommendationLevel] = useState<string | null>(null);
-  const [levels, setLevels] = useState<LevelInfo[]>(defaultLevels);
+  const [levels, setLevels] = useState<LevelInfo[]>([]);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
@@ -53,13 +45,14 @@ export default function TestsPage() {
         const mappedLevels = dbLevels.map((l, idx) => ({
           id: idx + 1,
           title: l.title,
+          color: l.color,
           difficulty: 'beginner' as const,
           nextLevel: dbLevels[idx + 1]?.title || null,
         }));
         setLevels(mappedLevels);
       }
     } catch (error) {
-      console.log('Using default levels');
+      console.log('Error loading levels:', error);
     }
     setLoading(false);
   };
@@ -279,11 +272,16 @@ export default function TestsPage() {
             <>
               <p className="text-gray-600 mb-8">Take a test to earn your certificate. You need 80% or higher to pass.</p>
 
-              <div className="grid sm:grid-cols-2 gap-5">
+<div className="grid sm:grid-cols-2 gap-5">
                 {levels.map((level) => {
                   const isUnlocked = purchasedLevels.includes(level.id);
-                  const LevelIcon = levelIcons[level.id - 1] || GraduationCap;
-                  const colors = ['bg-emerald-500', 'bg-primary-500', 'bg-purple-500', 'bg-amber-500'];
+                  const colorMap: Record<string, string> = {
+                    green: 'bg-emerald-500',
+                    blue: 'bg-primary-500',
+                    purple: 'bg-purple-500',
+                    amber: 'bg-amber-500',
+                  };
+                  const bgColor = colorMap[level.color] || 'bg-gray-500';
                   return (
                     <div
                       key={level.id}
@@ -291,8 +289,8 @@ export default function TestsPage() {
                       className={`bg-white p-5 rounded-xl border-2 transition-all ${isUnlocked ? 'cursor-pointer hover:shadow-lg hover:border-primary-300 border-gray-200' : 'opacity-60 border-gray-100'}`}
                     >
                       <div className="flex items-center gap-4 mb-4">
-                        <div className={`w-12 h-12 ${colors[level.id - 1]} rounded-xl flex items-center justify-center text-white`}>
-                          <LevelIcon size={24} />
+                        <div className={`w-12 h-12 ${bgColor} rounded-xl flex items-center justify-center text-white`}>
+                          <Play size={24} />
                         </div>
                         <div>
                           <h3 className="font-bold text-gray-900">{level.title} Test</h3>
@@ -303,13 +301,13 @@ export default function TestsPage() {
                         <button className="w-full py-3 bg-primary-600 text-white rounded-xl hover:bg-primary-700 font-medium text-sm shadow-md">
                       Start Test
                     </button>
-                  ) : (
-                    <span className="block text-center py-2.5 text-gray-400 text-sm font-medium">Locked</span>
-                  )}
-                </div>
-              );
-            })}
-          </div>
+                      ) : (
+                        <span className="block text-center py-2.5 text-gray-400 text-sm font-medium">Locked</span>
+                      )}
+                    </div>
+                  );
+                })}
+              </div>
           </>
         )}
         </div>

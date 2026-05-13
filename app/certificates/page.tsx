@@ -5,8 +5,8 @@ import Link from 'next/link';
 import Navbar from '@/components/Navbar';
 import { useAuth } from '@/context/AuthContext';
 import Certificate, { CertificateProps } from '@/components/Certificate';
-import { dbService } from '@/lib/database';
-import { ArrowLeft, Award, CheckCircle, FileText, Download, Eye, X, GraduationCap, MessageCircle, BookOpen, BookMarked } from 'lucide-react';
+import { dbService, Level } from '@/lib/database';
+import { ArrowLeft, Award, CheckCircle, FileText, Download, Eye, X } from 'lucide-react';
 import { generateCertificateId, formatDate, downloadCertificateAsPDF } from '@/lib/certificate';
 
 interface UserCertificate {
@@ -18,32 +18,30 @@ interface UserCertificate {
   certificateId: string;
 }
 
-const levelConfig = [
-  { id: 1, title: 'Beginner', icon: GraduationCap, color: 'bg-emerald-500' },
-  { id: 2, title: 'Practice', icon: MessageCircle, color: 'bg-primary-500' },
-  { id: 3, title: 'Intermediate', icon: BookOpen, color: 'bg-purple-500' },
-  { id: 4, title: 'Fluent', icon: BookMarked, color: 'bg-amber-500' },
-];
-
 export default function CertificatesPage() {
   const { user, userData } = useAuth();
   const certificateRef = useRef<HTMLDivElement>(null);
   const [viewingCertificate, setViewingCertificate] = useState<UserCertificate | null>(null);
   const [showPreview, setShowPreview] = useState(false);
   const [certificates, setCertificates] = useState<UserCertificate[]>([]);
+  const [levels, setLevels] = useState<Level[]>([]);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     if (user) {
-      loadCertificates();
+      loadData();
     }
   }, [user]);
 
-  const loadCertificates = async () => {
+  const loadData = async () => {
     if (!user) return;
     setLoading(true);
     try {
-      const dbCerts = await dbService.getCertificates(user.uid);
+      const [dbCerts, dbLevels] = await Promise.all([
+        dbService.getCertificates(user.uid),
+        dbService.getLevels(),
+      ]);
+      setLevels(dbLevels);
       setCertificates(dbCerts.map(c => ({
         id: c.id,
         levelId: c.levelId,
@@ -53,7 +51,7 @@ export default function CertificatesPage() {
         certificateId: c.certificateId,
       })));
     } catch (error) {
-      console.log('Using fallback certificates');
+      console.log('Error loading data:', error);
     }
     setLoading(false);
   };
@@ -77,7 +75,17 @@ export default function CertificatesPage() {
     element.style.display = 'none';
   };
 
-  const getLevelInfo = (levelId: number) => levelConfig.find(l => l.id === levelId) || levelConfig[0];
+  const getLevelInfo = (levelId: number) => {
+    const level = levels.find(l => l.id === levelId.toString());
+    if (!level) return { icon: Award, color: 'bg-gray-500' };
+    return {
+      icon: Award,
+      color: level.color === 'green' ? 'bg-emerald-500' : 
+             level.color === 'blue' ? 'bg-primary-500' : 
+             level.color === 'purple' ? 'bg-purple-500' : 
+             level.color === 'amber' ? 'bg-amber-500' : 'bg-gray-500',
+    };
+  };
 
   return (
     <div className="min-h-screen bg-gray-50">
@@ -170,9 +178,12 @@ export default function CertificatesPage() {
               <div className="mt-12">
                 <h2 className="text-lg font-semibold text-gray-900 mb-6">Available Certificates</h2>
                 <div className="grid sm:grid-cols-2 gap-4">
-                  {levelConfig.map((level) => {
-                    const hasCert = certificates.some(c => c.levelId === level.id);
-                    const LevelIcon = level.icon;
+                  {levels.map((level) => {
+                    const hasCert = certificates.some(c => c.levelId === parseInt(level.id));
+                    const colorClass = level.color === 'green' ? 'bg-emerald-500' : 
+                                       level.color === 'blue' ? 'bg-primary-500' : 
+                                       level.color === 'purple' ? 'bg-purple-500' : 
+                                       level.color === 'amber' ? 'bg-amber-500' : 'bg-gray-500';
                     return (
                       <div
                         key={level.id}
@@ -183,8 +194,8 @@ export default function CertificatesPage() {
                         }`}
                       >
                         <div className="flex items-center gap-3">
-                          <div className={`w-10 h-10 ${level.color} rounded-lg flex items-center justify-center text-white`}>
-                            <LevelIcon size={20} />
+                          <div className={`w-10 h-10 ${colorClass} rounded-lg flex items-center justify-center text-white`}>
+                            <Award size={20} />
                           </div>
                           <div>
                             <div className="font-medium text-gray-900">{level.title}</div>

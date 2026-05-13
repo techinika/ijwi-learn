@@ -151,6 +151,13 @@ export default function Home() {
                       Continue Learning
                       <ArrowRight size={18} />
                     </Link>
+                  ) : level.price === 0 ? (
+                    <button
+                      onClick={() => purchaseLevel(parseInt(level.id))}
+                      className="w-full py-3 bg-emerald-600 text-white rounded-xl hover:bg-emerald-700 font-semibold shadow-md"
+                    >
+                      Unlock Free
+                    </button>
                   ) : (
                     <button
                       onClick={() => setPaymentLevel(level)}

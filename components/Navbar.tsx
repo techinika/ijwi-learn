@@ -60,7 +60,7 @@ export default function Navbar() {
                   <MessageCircle size={16} />
                   <span>Chat</span>
                 </Link>
-                {(user.email?.includes('admin') || user.email?.includes('teacher')) && (
+                {(userData?.isAdmin || userData?.isTeacher) && (
                   <Link
                     href="/admin"
                     className="hidden md:flex items-center gap-2 px-4 py-2 bg-gray-800 text-white rounded-xl hover:bg-gray-900 transition text-sm font-medium shadow-sm"
