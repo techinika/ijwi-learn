@@ -109,7 +109,13 @@ export default function AdminTestsPage() {
       ...prev,
       questions: [
         ...prev.questions,
-        { question: '', options: ['', '', '', ''], correctAnswer: 0 },
+        {
+          question: '',
+          questionTranslations: {},
+          options: ['', '', '', ''],
+          optionsTranslations: [{}, {}, {}, {}],
+          correctAnswer: 0,
+        },
       ],
     }));
   };
@@ -256,33 +262,60 @@ export default function AdminTestsPage() {
                           </button>
                         </div>
                         <div className="space-y-3">
-                          <input
-                            type="text"
-                            value={q.question}
-                            onChange={e => updateQuestion(idx, 'question', e.target.value)}
-                            className="w-full px-3 py-2 border border-gray-300 rounded-lg"
-                            placeholder="Enter question text"
-                          />
+                          <div>
+                            <label className="block text-xs font-medium text-gray-600 mb-1">Question (English)</label>
+                            <input
+                              type="text"
+                              value={q.question}
+                              onChange={e => updateQuestion(idx, 'question', e.target.value)}
+                              className="w-full px-3 py-2 border border-gray-300 rounded-lg"
+                              placeholder="Enter question text"
+                            />
+                          </div>
+                          <div>
+                            <label className="block text-xs font-medium text-gray-600 mb-1">Question (Kinyarwanda)</label>
+                            <input
+                              type="text"
+                              value={q.questionTranslations?.['rw'] || ''}
+                              onChange={e => updateQuestion(idx, 'questionTranslations', { ...q.questionTranslations, 'rw': e.target.value })}
+                              className="w-full px-3 py-2 border border-gray-300 rounded-lg"
+                              placeholder="Ibyo ushaka kubaza muri Kinyarwanda"
+                            />
+                          </div>
                           <div className="space-y-2">
+                            <label className="block text-xs font-medium text-gray-600">Options (select correct answer)</label>
                             {q.options.map((opt, optIdx) => (
-                              <div key={optIdx} className="flex items-center gap-2">
-                                <input
-                                  type="radio"
-                                  name={`correct-${idx}`}
-                                  checked={q.correctAnswer === optIdx}
-                                  onChange={() => updateQuestion(idx, 'correctAnswer', optIdx)}
-                                  className="text-primary-600"
-                                />
+                              <div key={optIdx} className="space-y-1">
+                                <div className="flex items-center gap-2">
+                                  <input
+                                    type="radio"
+                                    name={`correct-${idx}`}
+                                    checked={q.correctAnswer === optIdx}
+                                    onChange={() => updateQuestion(idx, 'correctAnswer', optIdx)}
+                                    className="text-primary-600"
+                                  />
+                                  <input
+                                    type="text"
+                                    value={opt}
+                                    onChange={e => {
+                                      const newOptions = [...q.options];
+                                      newOptions[optIdx] = e.target.value;
+                                      updateQuestion(idx, 'options', newOptions);
+                                    }}
+                                    className="flex-1 px-3 py-2 border border-gray-300 rounded-lg text-sm"
+                                    placeholder={`Option ${optIdx + 1}`}
+                                  />
+                                </div>
                                 <input
                                   type="text"
-                                  value={opt}
+                                  value={q.optionsTranslations?.[optIdx]?.['rw'] || ''}
                                   onChange={e => {
-                                    const newOptions = [...q.options];
-                                    newOptions[optIdx] = e.target.value;
-                                    updateQuestion(idx, 'options', newOptions);
+                                    const newTranslations = [...(q.optionsTranslations || [{}, {}, {}, {}])];
+                                    newTranslations[optIdx] = { ...newTranslations[optIdx], 'rw': e.target.value };
+                                    updateQuestion(idx, 'optionsTranslations', newTranslations);
                                   }}
-                                  className="flex-1 px-3 py-2 border border-gray-300 rounded-lg text-sm"
-                                  placeholder={`Option ${optIdx + 1}`}
+                                  className="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm ml-6"
+                                  placeholder={`Kinyarwanda translation for option ${optIdx + 1}`}
                                 />
                               </div>
                             ))}

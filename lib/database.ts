@@ -1,11 +1,12 @@
 import { db } from './firebase';
 import { 
   collection, doc, getDoc, getDocs, addDoc, updateDoc, deleteDoc,
-  query, where, orderBy, limit, onSnapshot, Unsubscribe
+  query, where, orderBy, limit, onSnapshot, Unsubscribe, serverTimestamp, writeBatch, Timestamp
 } from 'firebase/firestore';
 
 export interface Level {
   id: string;
+  slug?: string;
   title: string;
   description: string;
   price: number;
@@ -17,6 +18,7 @@ export interface Level {
 
 export interface Vocabulary {
   id: string;
+  slug?: string;
   levelId: string;
   word: string;
   wordKinyarwanda: string;
@@ -33,6 +35,7 @@ export interface StorySentence {
 
 export interface Story {
   id: string;
+  slug?: string;
   levelId: string;
   title: string;
   titleTranslations: Record<string, string>;
@@ -46,6 +49,7 @@ export interface Story {
 
 export interface Test {
   id: string;
+  slug?: string;
   levelId: string;
   title: string;
   questions: TestQuestion[];
@@ -55,12 +59,15 @@ export interface Test {
 
 export interface TestQuestion {
   question: string;
+  questionTranslations?: Record<string, string>;
   options: string[];
+  optionsTranslations?: Record<string, string>[];
   correctAnswer: number;
 }
 
 export interface Lesson {
   id: string;
+  slug?: string;
   levelId: string;
   title: string;
   titleKinyarwanda: string;
@@ -96,6 +103,7 @@ export interface Certificate {
 
 export interface Video {
   id: string;
+  slug?: string;
   levelId: string;
   title: string;
   description: string;
@@ -114,13 +122,53 @@ export interface VideoCategory {
   isActive: boolean;
 }
 
+export interface Subscription {
+  id: string;
+  userId: string;
+  userEmail: string;
+  userName: string;
+  levelId: string;
+  levelTitle: string;
+  levelSlug: string;
+  levelPrice: number;
+  status: 'active' | 'cancelled' | 'expired' | 'pending';
+  startDate: Date;
+  endDate: Date;
+  nextBillingDate: Date;
+  reminderSent: boolean;
+  createdAt?: Date;
+  updatedAt?: Date;
+}
+
+export interface Invoice {
+  id: string;
+  invoiceNumber: string;
+  userId: string;
+  userEmail: string;
+  userName: string;
+  subscriptionId: string;
+  levelId: string;
+  levelTitle: string;
+  levelSlug: string;
+  amount: number;
+  currency: string;
+  status: 'paid' | 'unpaid' | 'overdue' | 'cancelled';
+  billingPeriodStart: Date;
+  billingPeriodEnd: Date;
+  paidAt?: Date;
+  transactionId?: string;
+  paymentMethod?: string;
+  createdAt?: Date;
+  updatedAt?: Date;
+}
+
 export interface PointHistory {
   id: string;
   userId: string;
   points: number;
   reason: string;
-  type: 'test' | 'vocabulary' | 'practice' | 'streak' | 'certificate' | 'other';
-  relatedId?: string;
+  type: 'test' | 'vocabulary' | 'practice' | 'streak' | 'certificate' | 'merit' | 'other';
+  relatedId?: string | null;
   createdAt: Date;
 }
 
@@ -164,6 +212,28 @@ export interface Language {
   flag: string;
 }
 
+export interface ChatMessage {
+  id?: string;
+  userId: string;
+  userName: string;
+  userEmail: string;
+  content: string;
+  role: 'learner' | 'teacher';
+  timestamp: Date | { toDate(): Date };
+  read: boolean;
+}
+
+export interface ChatThread {
+  id: string;
+  learnerId: string;
+  learnerName: string;
+  learnerEmail: string;
+  learnerPhoto?: string;
+  lastMessage?: string;
+  lastMessageTime?: Date;
+  unreadCount: number;
+}
+
 class DatabaseService {
   private levelsCollection = collection(db, 'levels');
   private vocabularyCollection = collection(db, 'vocabulary');
@@ -177,7 +247,10 @@ class DatabaseService {
   private categoriesCollection = collection(db, 'categories');
   private difficultiesCollection = collection(db, 'difficulties');
   private languagesCollection = collection(db, 'languages');
+  private chatMessagesCollection = collection(db, 'chatMessages');
   private videoCategoriesCollection = collection(db, 'videoCategories');
+  private subscriptionsCollection = collection(db, 'subscriptions');
+  private invoicesCollection = collection(db, 'invoices');
 
   // LEVELS
   async getLevels(): Promise<Level[]> {
@@ -221,7 +294,7 @@ class DatabaseService {
       results = results.filter(r => r.difficulty === filters.difficulty);
     }
     if (filters?.category) {
-      results = results.filter(r => r.category === filters.category);
+      results = results.filter(r => r.category === filters.category || r.category === filters.category);
     }
     return results;
   }
@@ -405,7 +478,7 @@ class DatabaseService {
   }
 
   // VIDEOS
-  async getVideos(filters?: { levelId?: string; levelIds?: string[]; category?: string }): Promise<Video[]> {
+  async getVideos(filters?: { levelId?: string; levelIds?: string[]; category?: string; isActive?: boolean }): Promise<Video[]> {
     let q = query(this.videosCollection, where('isActive', '==', true));
     if (filters?.levelId) {
       q = query(this.videosCollection, where('levelId', '==', filters.levelId), where('isActive', '==', true));
@@ -478,9 +551,9 @@ class DatabaseService {
 
   // Efficiently update user points with history tracking
   async awardPoints(
-    userId: string, 
-    points: number, 
-    reason: string, 
+    userId: string,
+    points: number,
+    reason: string,
     type: PointHistory['type'],
     relatedId?: string
   ): Promise<void> {
@@ -493,7 +566,7 @@ class DatabaseService {
       points,
       reason,
       type,
-      relatedId,
+      relatedId: relatedId || null,
     });
 
     // Update user total
@@ -614,6 +687,253 @@ class DatabaseService {
 
   async deleteVideoCategory(id: string): Promise<void> {
     await deleteDoc(doc(this.videoCategoriesCollection, id));
+  }
+
+  // CHAT MESSAGES
+  async sendChatMessage(data: Omit<ChatMessage, 'id'>): Promise<string> {
+    const docRef = await addDoc(this.chatMessagesCollection, {
+      ...data,
+      timestamp: serverTimestamp(),
+      read: false,
+    });
+    return docRef.id;
+  }
+
+  async getChatMessages(userId: string): Promise<ChatMessage[]> {
+    const q = query(
+      this.chatMessagesCollection,
+      where('userId', '==', userId),
+      orderBy('timestamp', 'asc')
+    );
+    const snapshot = await getDocs(q);
+    return snapshot.docs.map(d => {
+      const data = d.data();
+      return {
+        id: d.id,
+        ...data,
+        timestamp: data.timestamp?.toDate ? data.timestamp.toDate() : new Date(),
+      } as ChatMessage;
+    });
+  }
+
+  async getAllChatThreads(): Promise<ChatThread[]> {
+    const q = query(this.chatMessagesCollection, orderBy('timestamp', 'desc'));
+    const snapshot = await getDocs(q);
+    const threadMap = new Map<string, ChatThread>();
+
+    const toDate = (ts: Timestamp | Date | undefined) => {
+      if (!ts) return new Date();
+      if (ts instanceof Timestamp) return ts.toDate();
+      if (ts instanceof Date) return ts;
+      return new Date();
+    };
+
+    for (const doc of snapshot.docs) {
+      const msg = doc.data() as ChatMessage;
+      if (!threadMap.has(msg.userId)) {
+        threadMap.set(msg.userId, {
+          id: msg.userId,
+          learnerId: msg.userId,
+          learnerName: msg.userName,
+          learnerEmail: msg.userEmail,
+          learnerPhoto: '',
+          lastMessage: msg.content,
+          lastMessageTime: toDate(msg.timestamp as Timestamp | Date),
+          unreadCount: 0,
+        });
+      }
+      const thread = threadMap.get(msg.userId)!;
+      if (!msg.read && msg.role === 'learner') {
+        thread.unreadCount++;
+      }
+      if (msg.timestamp) {
+        const msgTime = toDate(msg.timestamp as Timestamp | Date);
+        if (msgTime > thread.lastMessageTime!) {
+          thread.lastMessage = msg.content;
+          thread.lastMessageTime = msgTime;
+        }
+      }
+    }
+
+    return Array.from(threadMap.values()).sort((a, b) =>
+      (b.lastMessageTime?.getTime() || 0) - (a.lastMessageTime?.getTime() || 0)
+    );
+  }
+
+  async markMessagesAsRead(userId: string): Promise<void> {
+    const q = query(
+      this.chatMessagesCollection,
+      where('userId', '==', userId),
+      where('read', '==', false)
+    );
+    const snapshot = await getDocs(q);
+    const batch = writeBatch(db);
+    snapshot.forEach(doc => {
+      batch.update(doc.ref, { read: true });
+    });
+    await batch.commit();
+  }
+
+  // SUBSCRIPTIONS
+  async getSubscriptions(filters?: { userId?: string; status?: string }): Promise<Subscription[]> {
+    let q = query(this.subscriptionsCollection, orderBy('createdAt', 'desc'));
+    const snapshot = await getDocs(q);
+    let results = snapshot.docs.map(d => {
+      const data = d.data();
+      return {
+        id: d.id,
+        ...data,
+        startDate: data.startDate?.toDate ? data.startDate.toDate() : new Date(data.startDate?.seconds * 1000),
+        endDate: data.endDate?.toDate ? data.endDate.toDate() : new Date(data.endDate?.seconds * 1000),
+        nextBillingDate: data.nextBillingDate?.toDate ? data.nextBillingDate.toDate() : new Date(data.nextBillingDate?.seconds * 1000),
+        createdAt: data.createdAt?.toDate ? data.createdAt.toDate() : new Date(),
+        updatedAt: data.updatedAt?.toDate ? data.updatedAt.toDate() : new Date(),
+      } as Subscription;
+    });
+    if (filters?.userId) {
+      results = results.filter(r => r.userId === filters.userId);
+    }
+    if (filters?.status) {
+      results = results.filter(r => r.status === filters.status);
+    }
+    return results;
+  }
+
+  async getSubscription(id: string): Promise<Subscription | null> {
+    const docSnap = await getDoc(doc(this.subscriptionsCollection, id));
+    if (!docSnap.exists()) return null;
+    const data = docSnap.data();
+    return {
+      id: docSnap.id,
+      ...data,
+      startDate: data.startDate?.toDate ? data.startDate.toDate() : new Date(),
+      endDate: data.endDate?.toDate ? data.endDate.toDate() : new Date(),
+      nextBillingDate: data.nextBillingDate?.toDate ? data.nextBillingDate.toDate() : new Date(),
+      createdAt: data.createdAt?.toDate ? data.createdAt.toDate() : new Date(),
+      updatedAt: data.updatedAt?.toDate ? data.updatedAt.toDate() : new Date(),
+    } as Subscription;
+  }
+
+  async getActiveSubscription(userId: string, levelId: string): Promise<Subscription | null> {
+    const q = query(
+      this.subscriptionsCollection,
+      where('userId', '==', userId),
+      where('levelId', '==', levelId),
+      where('status', '==', 'active')
+    );
+    const snapshot = await getDocs(q);
+    if (snapshot.empty) return null;
+    const data = snapshot.docs[0].data();
+    return {
+      id: snapshot.docs[0].id,
+      ...data,
+      startDate: data.startDate?.toDate ? data.startDate.toDate() : new Date(),
+      endDate: data.endDate?.toDate ? data.endDate.toDate() : new Date(),
+      nextBillingDate: data.nextBillingDate?.toDate ? data.nextBillingDate.toDate() : new Date(),
+      createdAt: data.createdAt?.toDate ? data.createdAt.toDate() : new Date(),
+      updatedAt: data.updatedAt?.toDate ? data.updatedAt.toDate() : new Date(),
+    } as Subscription;
+  }
+
+  async createSubscription(data: Omit<Subscription, 'id'>): Promise<string> {
+    const docRef = await addDoc(this.subscriptionsCollection, {
+      ...data,
+      createdAt: serverTimestamp(),
+      updatedAt: serverTimestamp(),
+    });
+    return docRef.id;
+  }
+
+  async updateSubscription(id: string, data: Partial<Subscription>): Promise<void> {
+    await updateDoc(doc(this.subscriptionsCollection, id), {
+      ...data,
+      updatedAt: serverTimestamp(),
+    });
+  }
+
+  async cancelSubscription(id: string): Promise<void> {
+    await updateDoc(doc(this.subscriptionsCollection, id), {
+      status: 'cancelled',
+      updatedAt: serverTimestamp(),
+    });
+  }
+
+  // INVOICES
+  async getInvoices(filters?: { userId?: string; status?: string; subscriptionId?: string }): Promise<Invoice[]> {
+    let q = query(this.invoicesCollection, orderBy('createdAt', 'desc'));
+    const snapshot = await getDocs(q);
+    let results = snapshot.docs.map(d => {
+      const data = d.data();
+      return {
+        id: d.id,
+        ...data,
+        billingPeriodStart: data.billingPeriodStart?.toDate ? data.billingPeriodStart.toDate() : new Date(),
+        billingPeriodEnd: data.billingPeriodEnd?.toDate ? data.billingPeriodEnd.toDate() : new Date(),
+        paidAt: data.paidAt?.toDate ? data.paidAt.toDate() : undefined,
+        createdAt: data.createdAt?.toDate ? data.createdAt.toDate() : new Date(),
+        updatedAt: data.updatedAt?.toDate ? data.updatedAt.toDate() : new Date(),
+      } as Invoice;
+    });
+    if (filters?.userId) {
+      results = results.filter(r => r.userId === filters.userId);
+    }
+    if (filters?.status) {
+      results = results.filter(r => r.status === filters.status);
+    }
+    if (filters?.subscriptionId) {
+      results = results.filter(r => r.subscriptionId === filters.subscriptionId);
+    }
+    return results;
+  }
+
+  async getInvoice(id: string): Promise<Invoice | null> {
+    const docSnap = await getDoc(doc(this.invoicesCollection, id));
+    if (!docSnap.exists()) return null;
+    const data = docSnap.data();
+    return {
+      id: docSnap.id,
+      ...data,
+      billingPeriodStart: data.billingPeriodStart?.toDate ? data.billingPeriodStart.toDate() : new Date(),
+      billingPeriodEnd: data.billingPeriodEnd?.toDate ? data.billingPeriodEnd.toDate() : new Date(),
+      paidAt: data.paidAt?.toDate ? data.paidAt.toDate() : undefined,
+      createdAt: data.createdAt?.toDate ? data.createdAt.toDate() : new Date(),
+      updatedAt: data.updatedAt?.toDate ? data.updatedAt.toDate() : new Date(),
+    } as Invoice;
+  }
+
+  async createInvoice(data: Omit<Invoice, 'id'>): Promise<string> {
+    const docRef = await addDoc(this.invoicesCollection, {
+      ...data,
+      createdAt: serverTimestamp(),
+      updatedAt: serverTimestamp(),
+    });
+    return docRef.id;
+  }
+
+  async updateInvoice(id: string, data: Partial<Invoice>): Promise<void> {
+    await updateDoc(doc(this.invoicesCollection, id), {
+      ...data,
+      updatedAt: serverTimestamp(),
+    });
+  }
+
+  async markInvoicePaid(id: string, transactionId: string, paymentMethod: string): Promise<void> {
+    await updateDoc(doc(this.invoicesCollection, id), {
+      status: 'paid',
+      paidAt: serverTimestamp(),
+      transactionId,
+      paymentMethod,
+      updatedAt: serverTimestamp(),
+    });
+  }
+
+  async generateInvoiceNumber(): Promise<string> {
+    const prefix = 'INV';
+    const date = new Date();
+    const year = date.getFullYear();
+    const month = String(date.getMonth() + 1).padStart(2, '0');
+    const random = Math.floor(Math.random() * 10000).toString().padStart(4, '0');
+    return `${prefix}-${year}${month}-${random}`;
   }
 }
 

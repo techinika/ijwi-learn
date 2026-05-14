@@ -1,5 +1,5 @@
 import { initializeApp, getApps } from 'firebase/app';
-import { getAuth, GoogleAuthProvider } from 'firebase/auth';
+import { getAuth, GoogleAuthProvider, User } from 'firebase/auth';
 import { getFirestore } from 'firebase/firestore';
 
 const firebaseConfig = {
@@ -17,3 +17,18 @@ const db = getFirestore(app);
 const googleProvider = new GoogleAuthProvider();
 
 export { app, auth, db, googleProvider };
+
+export async function currentUser(): Promise<User | null> {
+  return new Promise((resolve) => {
+    const unsubscribe = auth.onAuthStateChanged((user) => {
+      unsubscribe();
+      resolve(user);
+    });
+  });
+}
+
+export async function getIdToken(): Promise<string | null> {
+  const user = await currentUser();
+  if (!user) return null;
+  return user.getIdToken();
+}

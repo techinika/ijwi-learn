@@ -5,7 +5,7 @@ import Link from 'next/link';
 import Navbar from '@/components/Navbar';
 import { useAuth } from '@/context/AuthContext';
 import { dbService, Vocabulary, Level, Category, Difficulty, Language } from '@/lib/database';
-import { ArrowLeft, Plus, Edit2, Trash2, Save, X, BookOpen, Search } from 'lucide-react';
+import { ArrowLeft, Plus, Edit2, Trash2, Save, X, BookOpen, Search, Upload, FileText } from 'lucide-react';
 
 export default function VocabularyPage() {
   const { user, isAdmin, isTeacher } = useAuth();
@@ -17,6 +17,13 @@ export default function VocabularyPage() {
   const [loading, setLoading] = useState(true);
   const [showModal, setShowModal] = useState(false);
   const [editing, setEditing] = useState<Vocabulary | null>(null);
+  const [showBulkModal, setShowBulkModal] = useState(false);
+  const [bulkText, setBulkText] = useState('');
+  const [bulkLevelId, setBulkLevelId] = useState('');
+  const [bulkDifficulty, setBulkDifficulty] = useState('');
+  const [bulkCategory, setBulkCategory] = useState('');
+  const [bulkPreview, setBulkPreview] = useState<Vocabulary[]>([]);
+  const [savingBulk, setSavingBulk] = useState(false);
   const [searchTerm, setSearchTerm] = useState('');
   const [filterLevel, setFilterLevel] = useState('');
   const [filterDifficulty, setFilterDifficulty] = useState('');
@@ -133,6 +140,61 @@ export default function VocabularyPage() {
     }
   };
 
+  const parseBulkVocabulary = () => {
+    if (!bulkLevelId || !bulkDifficulty || !bulkCategory) {
+      alert('Please select level, difficulty, and category first.');
+      return;
+    }
+    const lines = bulkText.trim().split('\n').filter(l => l.trim());
+    const parsed: Vocabulary[] = [];
+    const initialTranslations: Record<string, string> = {};
+    languages.forEach(lg => { initialTranslations[lg.code] = ''; });
+
+    lines.forEach(line => {
+      const parts = line.split('|').map(p => p.trim());
+      if (parts.length >= 2) {
+        parsed.push({
+          id: '',
+          wordKinyarwanda: parts[0],
+          word: parts[1],
+          levelId: bulkLevelId,
+          difficulty: bulkDifficulty,
+          category: bulkCategory,
+          pronunciation: parts[2] || '',
+          translations: { ...initialTranslations },
+        });
+      }
+    });
+
+    setBulkPreview(parsed);
+  };
+
+  const saveBulkVocabulary = async () => {
+    if (bulkPreview.length === 0) return;
+    setSavingBulk(true);
+    try {
+      for (const item of bulkPreview) {
+        await dbService.createVocabulary({
+          wordKinyarwanda: item.wordKinyarwanda,
+          word: item.word,
+          levelId: item.levelId,
+          difficulty: item.difficulty,
+          category: item.category,
+          pronunciation: item.pronunciation,
+          translations: item.translations,
+        });
+      }
+      setShowBulkModal(false);
+      setBulkText('');
+      setBulkPreview([]);
+      await loadVocabulary();
+    } catch (e) {
+      console.error('Failed to save bulk vocabulary', e);
+    } finally {
+      setSavingBulk(false);
+    }
+  };
+
   const translationsCount = (item: Vocabulary) => {
     return Object.values(item.translations || {}).filter(v => v.trim()).length;
   };
@@ -170,10 +232,16 @@ export default function VocabularyPage() {
               <h1 className="text-2xl font-bold">Vocabulary Management</h1>
               <p className="text-primary-100 mt-1">Add, edit, and manage Kinyarwanda vocabulary words</p>
             </div>
-            <button onClick={openAdd} className="flex items-center gap-2 bg-white text-primary-600 px-4 py-2 rounded-lg font-semibold hover:bg-primary-50 transition-colors">
-              <Plus size={18} />
-              Add Vocabulary
-            </button>
+            <div className="flex gap-3">
+              <button onClick={() => setShowBulkModal(true)} className="flex items-center gap-2 bg-white/20 text-white px-4 py-2 rounded-lg font-semibold hover:bg-white/30 transition-colors">
+                <Upload size={18} />
+                Bulk Add
+              </button>
+              <button onClick={openAdd} className="flex items-center gap-2 bg-white text-primary-600 px-4 py-2 rounded-lg font-semibold hover:bg-primary-50 transition-colors">
+                <Plus size={18} />
+                Add Vocabulary
+              </button>
+            </div>
           </div>
 
           <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-4 mb-6">
@@ -321,6 +389,105 @@ export default function VocabularyPage() {
               <button onClick={handleSave} className="flex items-center gap-2 bg-primary-600 text-white px-4 py-2 rounded-lg text-sm font-semibold hover:bg-primary-700 transition-colors">
                 <Save size={16} />
                 {editing ? 'Update' : 'Save'}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {showBulkModal && (
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
+          <div className="bg-white rounded-2xl shadow-xl w-full max-w-2xl max-h-[90vh] overflow-y-auto">
+            <div className="flex items-center justify-between p-6 border-b border-gray-200">
+              <div className="flex items-center gap-3">
+                <div className="w-10 h-10 bg-primary-100 rounded-lg flex items-center justify-center">
+                  <Upload size={20} className="text-primary-600" />
+                </div>
+                <div>
+                  <h2 className="text-lg font-bold text-gray-900">Bulk Add Vocabulary</h2>
+                  <p className="text-sm text-gray-500">Add multiple words at once</p>
+                </div>
+              </div>
+              <button onClick={() => { setShowBulkModal(false); setBulkPreview([]); }} className="p-1 text-gray-400 hover:text-gray-600 rounded-lg hover:bg-gray-100">
+                <X size={20} />
+              </button>
+            </div>
+            <div className="p-6 space-y-4">
+              <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
+                <div className="flex items-start gap-3">
+                  <FileText size={20} className="text-blue-600 mt-0.5" />
+                  <div>
+                    <h3 className="text-sm font-medium text-blue-900">Format: Kinyarwanda | English | Pronunciation</h3>
+                    <p className="text-xs text-blue-700 mt-1">One word per line. Use pipe (|) to separate fields.</p>
+                    <p className="text-xs text-blue-700">Example: <span className="font-mono">ibibili | milk | bee-bee-lee</span></p>
+                  </div>
+                </div>
+              </div>
+              <div className="grid grid-cols-3 gap-4">
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">Level *</label>
+                  <select value={bulkLevelId} onChange={e => setBulkLevelId(e.target.value)} className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary-600">
+                    <option value="">Select level</option>
+                    {levels.map(l => <option key={l.id} value={l.id}>{l.title}</option>)}
+                  </select>
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">Difficulty *</label>
+                  <select value={bulkDifficulty} onChange={e => setBulkDifficulty(e.target.value)} className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary-600">
+                    <option value="">Select difficulty</option>
+                    {difficulties.map(d => <option key={d.id} value={d.id}>{d.name}</option>)}
+                  </select>
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">Category *</label>
+                  <select value={bulkCategory} onChange={e => setBulkCategory(e.target.value)} className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary-600">
+                    <option value="">Select category</option>
+                    {categories.map(c => <option key={c.id} value={c.id}>{c.name}</option>)}
+                  </select>
+                </div>
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">Vocabulary Items</label>
+                <textarea
+                  value={bulkText}
+                  onChange={e => setBulkText(e.target.value)}
+                  rows={10}
+                  className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary-600 font-mono"
+                  placeholder={`ibibili | milk | bee-bee-lee\namazi | water\ngusoma | to read`}
+                />
+              </div>
+              {bulkPreview.length > 0 && (
+                <div>
+                  <h3 className="text-sm font-medium text-gray-700 mb-2">Preview ({bulkPreview.length} items)</h3>
+                  <div className="max-h-48 overflow-y-auto border border-gray-200 rounded-lg">
+                    <table className="w-full text-sm">
+                      <thead className="bg-gray-50 sticky top-0">
+                        <tr>
+                          <th className="text-left px-3 py-2 font-medium text-gray-600">Kinyarwanda</th>
+                          <th className="text-left px-3 py-2 font-medium text-gray-600">English</th>
+                          <th className="text-left px-3 py-2 font-medium text-gray-600">Pronunciation</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {bulkPreview.map((item, i) => (
+                          <tr key={i} className="border-t border-gray-100">
+                            <td className="px-3 py-2">{item.wordKinyarwanda}</td>
+                            <td className="px-3 py-2">{item.word}</td>
+                            <td className="px-3 py-2 text-gray-500">{item.pronunciation || '-'}</td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  </div>
+                </div>
+              )}
+            </div>
+            <div className="flex items-center justify-end gap-3 p-6 border-t border-gray-200">
+              <button onClick={() => { setShowBulkModal(false); setBulkPreview([]); }} className="px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-100 rounded-lg transition-colors">Cancel</button>
+              <button onClick={parseBulkVocabulary} className="px-4 py-2 text-sm font-medium text-gray-700 border border-gray-300 hover:bg-gray-50 rounded-lg transition-colors">Preview</button>
+              <button onClick={saveBulkVocabulary} disabled={bulkPreview.length === 0 || savingBulk} className="flex items-center gap-2 bg-primary-600 text-white px-4 py-2 rounded-lg text-sm font-semibold hover:bg-primary-700 transition-colors disabled:opacity-50">
+                <Save size={16} />
+                {savingBulk ? 'Saving...' : `Save ${bulkPreview.length} Items`}
               </button>
             </div>
           </div>

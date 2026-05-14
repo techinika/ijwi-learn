@@ -4,7 +4,7 @@ import { useState, useEffect } from 'react';
 import Navbar from '@/components/Navbar';
 import { useAuth } from '@/context/AuthContext';
 import { dbService, Video, Level, VideoCategory } from '@/lib/database';
-import { ArrowLeft, Plus, Edit, Trash2, Save, X, Play, Eye, EyeOff } from 'lucide-react';
+import { ArrowLeft, Plus, Edit, Trash2, Save, X, Play, Eye, EyeOff, ExternalLink } from 'lucide-react';
 
 interface VideoFormData {
   title: string;
@@ -38,6 +38,8 @@ export default function AdminVideosPage() {
   const [editingVideo, setEditingVideo] = useState<Video | null>(null);
   const [formData, setFormData] = useState<VideoFormData>(defaultFormData);
   const [saving, setSaving] = useState(false);
+  const [previewVideo, setPreviewVideo] = useState<Video | null>(null);
+  const [showInactive, setShowInactive] = useState(false);
 
   useEffect(() => {
     loadData();
@@ -294,7 +296,16 @@ export default function AdminVideosPage() {
             </div>
           ) : (
             <>
-              <div className="flex justify-end mb-6">
+              <div className="flex justify-end gap-3 mb-6">
+                <button
+                  onClick={() => setShowInactive(!showInactive)}
+                  className={`flex items-center gap-2 px-4 py-2 rounded-xl font-medium ${
+                    showInactive ? 'bg-gray-200 text-gray-700' : 'bg-gray-100 text-gray-600'
+                  }`}
+                >
+                  <EyeOff size={18} />
+                  {showInactive ? 'Hide Inactive' : 'Show All'}
+                </button>
                 <button
                   onClick={() => setShowForm(true)}
                   className="flex items-center gap-2 px-5 py-2.5 bg-primary-600 text-white rounded-xl hover:bg-primary-700 font-medium"
@@ -319,11 +330,18 @@ export default function AdminVideosPage() {
                 </div>
               ) : (
                 <div className="grid sm:grid-cols-2 gap-6">
-                  {videos.map(video => (
+                  {videos.filter(v => showInactive || v.isActive).map(video => (
                     <div key={video.id} className={`bg-white rounded-xl shadow-sm border-2 overflow-hidden ${video.isActive ? 'border-gray-200' : 'border-gray-100 opacity-60'}`}>
-                      <div className="aspect-video bg-gradient-to-br from-gray-800 to-gray-900 flex items-center justify-center relative">
+                      <div
+                        className="aspect-video bg-gradient-to-br from-gray-800 to-gray-900 flex items-center justify-center relative cursor-pointer"
+                        onClick={() => setPreviewVideo(video)}
+                      >
                         <div className="w-16 h-16 bg-white/20 rounded-full flex items-center justify-center">
                           <Play size={32} className="text-white ml-1" />
+                        </div>
+                        <div className="absolute bottom-2 right-2 bg-black/50 text-white px-2 py-1 rounded text-xs flex items-center gap-1">
+                          <ExternalLink size={12} />
+                          Preview
                         </div>
                         {!video.isActive && (
                           <div className="absolute top-2 right-2 bg-red-500 text-white px-2 py-1 rounded text-xs font-medium">
@@ -372,6 +390,38 @@ export default function AdminVideosPage() {
           )}
         </div>
       </main>
+
+      {previewVideo && (
+        <div className="fixed inset-0 bg-black/80 flex items-center justify-center z-50 p-4">
+          <div className="bg-white rounded-2xl w-full max-w-3xl overflow-hidden">
+            <div className="flex items-center justify-between p-4 border-b border-gray-200">
+              <h3 className="font-semibold text-gray-900">{previewVideo.title}</h3>
+              <button onClick={() => setPreviewVideo(null)} className="p-1 text-gray-400 hover:text-gray-600">
+                <X size={20} />
+              </button>
+            </div>
+            <div className="aspect-video">
+              {previewVideo.videoUrl ? (
+                <iframe
+                  src={previewVideo.videoUrl.replace('watch?v=', 'embed/').replace('youtu.be/', 'www.youtube.com/embed/')}
+                  className="w-full h-full"
+                  allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+                  allowFullScreen
+                />
+              ) : (
+                <div className="w-full h-full flex items-center justify-center bg-gray-800 text-white">
+                  <p>No video URL set</p>
+                </div>
+              )}
+            </div>
+            {previewVideo.description && (
+              <div className="p-4 border-t border-gray-100">
+                <p className="text-sm text-gray-600">{previewVideo.description}</p>
+              </div>
+            )}
+          </div>
+        </div>
+      )}
     </div>
   );
 }

@@ -19,7 +19,7 @@ export default function LevelsPage() {
   const [loading, setLoading] = useState(true);
   const [showModal, setShowModal] = useState(false);
   const [editing, setEditing] = useState<Level | null>(null);
-  const [form, setForm] = useState({ title: '', description: '', price: 0, icon: '', color: 'primary', order: 1, isActive: true });
+  const [form, setForm] = useState({ title: '', slug: '', description: '', price: 0, icon: '', color: 'primary', order: 1, isActive: true });
 
   useEffect(() => {
     loadAll();
@@ -36,21 +36,26 @@ export default function LevelsPage() {
     setLoading(false);
   };
 
-  const openAdd = () => {
-    setForm({ title: '', description: '', price: 0, icon: '', color: 'primary', order: items.length + 1, isActive: true });
+const openAdd = () => {
+    setForm({ title: '', slug: '', description: '', price: 0, icon: '', color: 'primary', order: items.length + 1, isActive: true });
     setEditing(null);
     setShowModal(true);
   };
 
   const openEdit = (item: Level) => {
-    setForm({ title: item.title, description: item.description, price: item.price, icon: item.icon, color: item.color, order: item.order, isActive: item.isActive });
+    setForm({ title: item.title, slug: item.slug || '', description: item.description, price: item.price, icon: item.icon, color: item.color, order: item.order, isActive: item.isActive });
     setEditing(item);
     setShowModal(true);
   };
 
+  const generateSlug = (title: string) => {
+    return title.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/(^-|-$)/g, '');
+  };
+
   const handleSave = async () => {
     if (!form.title) return;
-    const data = { title: form.title, description: form.description, price: Number(form.price), icon: form.icon, color: form.color, order: Number(form.order), isActive: form.isActive };
+    const slug = form.slug || generateSlug(form.title);
+    const data = { title: form.title, slug, description: form.description, price: Number(form.price), icon: form.icon, color: form.color, order: Number(form.order), isActive: form.isActive };
     try {
       if (editing) {
         await dbService.updateLevel(editing.id, data);
@@ -117,6 +122,7 @@ export default function LevelsPage() {
                 <thead>
                   <tr className="bg-gray-50 border-b border-gray-200">
                     <th className="text-left px-4 py-3 font-semibold text-gray-600">Title</th>
+                    <th className="text-left px-4 py-3 font-semibold text-gray-600">Slug</th>
                     <th className="text-left px-4 py-3 font-semibold text-gray-600">Description</th>
                     <th className="text-center px-4 py-3 font-semibold text-gray-600">Price</th>
                     <th className="text-center px-4 py-3 font-semibold text-gray-600">Order</th>
@@ -127,12 +133,13 @@ export default function LevelsPage() {
                 </thead>
                 <tbody>
                   {loading ? (
-                    <tr><td colSpan={7} className="text-center py-8 text-gray-400">Loading...</td></tr>
+                    <tr><td colSpan={8} className="text-center py-8 text-gray-400">Loading...</td></tr>
                   ) : items.length === 0 ? (
-                    <tr><td colSpan={7} className="text-center py-8 text-gray-400">No levels found.</td></tr>
+                    <tr><td colSpan={8} className="text-center py-8 text-gray-400">No levels found.</td></tr>
                   ) : items.map(item => (
                     <tr key={item.id} className="border-b border-gray-100 hover:bg-gray-50">
                       <td className="px-4 py-3 font-medium text-gray-900">{item.title}</td>
+                      <td className="px-4 py-3 text-gray-500">{item.slug || '-'}</td>
                       <td className="px-4 py-3 text-gray-500 max-w-xs truncate">{item.description}</td>
                       <td className="px-4 py-3 text-center font-medium text-gray-900">${item.price}</td>
                       <td className="px-4 py-3 text-center text-gray-700">{item.order}</td>
@@ -183,6 +190,11 @@ export default function LevelsPage() {
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1">Title *</label>
                 <input type="text" value={form.title} onChange={e => setForm(p => ({ ...p, title: e.target.value }))} className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary-600" placeholder="e.g. Beginner" />
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">Slug</label>
+                <input type="text" value={form.slug} onChange={e => setForm(p => ({ ...p, slug: e.target.value }))} className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary-600" placeholder="beginner (auto-generated if empty)" />
+                <p className="text-xs text-gray-500 mt-1">Used in URL: /learn/{form.slug || 'slug'}</p>
               </div>
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1">Description</label>

@@ -1,95 +1,110 @@
-import { NextRequest, NextResponse } from 'next/server';
+import { NextResponse } from "next/server";
+import { getAuthenticatedUser } from "@/lib/auth";
 
-export async function POST(request: NextRequest) {
+export async function POST(req: Request) {
   try {
-    const body = await request.json();
-    const { amount, currency, description, callbackUrl, reference } = body;
+    const user = await getAuthenticatedUser();
+    const body = await req.json();
+    const {
+      amount,
+      currency,
+      description,
+      callbackUrl,
+      reference,
+      user: userData,
+      invoiceId,
+      levelId,
+      levelTitle,
+      levelSlug,
+      paymentType,
+      account_number,
+      subscription_details,
+    } = body;
 
-    const PESAPAL_CONSUMER_KEY = process.env.PESAPAL_CONSUMER_KEY;
-    const PESAPAL_CONSUMER_SECRET = process.env.PESAPAL_CONSUMER_SECRET;
-    const PESAPAL_ENV = process.env.PESAPAL_ENV || 'sandbox';
+    const email = userData?.email || user?.email || "";
+    const nameParts = (userData?.name || user?.displayName || "Customer IJWI-LEARN").split(" ");
+    const firstName = nameParts[0] || "Customer";
+    const lastName = nameParts.slice(1).join(" ") || "IJWI-LEARN";
 
-    if (!PESAPAL_CONSUMER_KEY || !PESAPAL_CONSUMER_SECRET) {
-      return NextResponse.json({
-        success: false,
-        message: 'Payment configuration not available',
-      });
-    }
-
-    const auth = Buffer.from(`${PESAPAL_CONSUMER_KEY}:${PESAPAL_CONSUMER_SECRET}`).toString('base64');
-
-    const tokenResponse = await fetch(
-      `https://${PESAPAL_ENV === 'live' ? 'pay.pesapal.com' : 'staging.pesapal.com'}/api/Auth/RequestToken`,
+    const authRes = await fetch(
+      `${process.env.PESAPAL_URL}/api/Auth/RequestToken`,
       {
-        method: 'POST',
+        method: "POST",
         headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Basic ${auth}`,
+          "Content-Type": "application/json",
+          Accept: "application/json",
         },
         body: JSON.stringify({
-          consumer_key: PESAPAL_CONSUMER_KEY,
-          consumer_secret: PESAPAL_CONSUMER_SECRET,
+          consumer_key: process.env.PESAPAL_CONSUMER_KEY,
+          consumer_secret: process.env.PESAPAL_CONSUMER_SECRET,
         }),
-      }
+      },
+    );
+    const { token } = await authRes.json();
+
+    if (!token) {
+      return NextResponse.json({ success: false, message: "Failed to get auth token" }, { status: 400 });
+    }
+
+    const merchantRef = reference || `IJWI-${Date.now()}`;
+
+    const payload: Record<string, unknown> = {
+      id: merchantRef,
+      currency: currency || "RWF",
+      amount: Number(amount),
+      description: description || "IJWI-LEARN Payment",
+      callback_url: callbackUrl || `${process.env.NEXT_PUBLIC_BASE_URL}/payment/callback`,
+      notification_id: process.env.PESAPAL_IPN_ID,
+      billing_address: {
+        email_address: email,
+        phone_number: "",
+        country_code: "RW",
+        first_name: firstName,
+        middle_name: "",
+        last_name: lastName,
+        line_1: "IJWI-LEARN",
+        line_2: "",
+        city: "Kigali",
+        state: "",
+        postal_code: "",
+        zip_code: "",
+      },
+    };
+
+    if (account_number) {
+      payload.account_number = account_number;
+    }
+
+    if (subscription_details && paymentType === 'subscription') {
+      payload.subscription_details = subscription_details;
+    }
+
+    const payRes = await fetch(
+      `${process.env.PESAPAL_URL}/api/Transactions/SubmitOrderRequest`,
+      {
+        method: "POST",
+        headers: {
+          Authorization: `Bearer ${token}`,
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify(payload),
+      },
     );
 
-    const tokenData = await tokenResponse.json();
-    
-    if (!tokenData.token) {
+    const payData = await payRes.json();
+
+    if (payData.redirect_url) {
       return NextResponse.json({
-        success: false,
-        message: 'Failed to get payment token',
+        success: true,
+        paymentUrl: payData.redirect_url,
+        merchant_reference: merchantRef,
+        orderTrackingId: payData.order_tracking_id,
       });
     }
 
-    const iframeResponse = await fetch(
-      `https://${PESAPAL_ENV === 'live' ? 'pay.pesapal.com' : 'staging.pesapal.com'}/api/PostOrderXMLPay`,
-      {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/xml',
-          'Authorization': `Bearer ${tokenData.token}`,
-        },
-        body: `
-          <?xml version="1.0" encoding="utf-8"?>
-          <Order>
-            <OrderId>${reference}</OrderId>
-            <Amount>${amount}</Amount>
-            <Currency>${currency}</Currency>
-            <Description>${description}</Description>
-            <CallbackUrl>${callbackUrl}</CallbackUrl>
-            <Branch>IJWI-LEARN</Branch>
-            <Customer>
-              <Email></Email>
-              <PhoneNumber></PhoneNumber>
-            </Customer>
-          </Order>
-        `,
-      }
-    );
-
-    const iframeData = await iframeResponse.text();
-
-    if (iframeData.includes('OrderURL')) {
-      const urlMatch = iframeData.match(/<OrderURL>(.*?)<\/OrderURL>/);
-      if (urlMatch) {
-        return NextResponse.json({
-          success: true,
-          paymentUrl: urlMatch[1],
-        });
-      }
-    }
-
-    return NextResponse.json({
-      success: false,
-      message: 'Failed to create payment',
-    });
-
+    return NextResponse.json({ success: false, message: payData.error?.message || "Failed to initiate payment" }, { status: 400 });
   } catch (error) {
-    console.error('Payment error:', error);
-    return NextResponse.json({
-      success: false,
-      message: 'Payment processing error',
-    });
+    console.error("Pesapal payment error:", error);
+    return NextResponse.json({ success: false, message: "Internal Server Error" }, { status: 500 });
   }
 }

@@ -109,9 +109,17 @@ export async function verifyPayment(transactionId: string): Promise<PaymentResul
   }
 }
 
-export function formatCurrency(amount: number, currency: string = 'USD'): string {
+export function formatCurrency(amount: number, currency: string = 'RWF'): string {
+  if (currency === 'RWF') {
+    return `${amount.toLocaleString('en-RW')} RWF`;
+  }
   return new Intl.NumberFormat('en-US', {
     style: 'currency',
     currency: currency,
   }).format(amount);
+}
+
+export function convertToRWF(amountInUSD: number): number {
+  const exchangeRate = Number(process.env.EXCHANGE_RATE_USD_TO_RWF) || 1350;
+  return Math.round(amountInUSD * exchangeRate);
 }

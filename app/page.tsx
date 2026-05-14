@@ -28,6 +28,7 @@ const iconMap: Record<string, React.ReactNode> = {
 
 interface LevelData {
   id: string;
+  slug: string;
   title: string;
   description: string;
   price: number;
@@ -36,11 +37,18 @@ interface LevelData {
   order: number;
 }
 
+interface SubscriptionData {
+  id: string;
+  levelId: string;
+  status: string;
+  nextBillingDate: Date;
+}
+
 const defaultLevels: LevelData[] = [
-  { id: '1', title: 'Beginner', description: 'Learn the basics of Kinyarwanda', price: 0, icon: 'graduation-cap', color: 'green', order: 1 },
-  { id: '2', title: 'Practice', description: 'AI-powered conversation practice', price: 9.99, icon: 'message-circle', color: 'blue', order: 2 },
-  { id: '3', title: 'Intermediate', description: 'Expand vocabulary and grammar rules', price: 14.99, icon: 'book-open', color: 'purple', order: 3 },
-  { id: '4', title: 'Fluent', description: 'Stories and advanced content', price: 19.99, icon: 'book-marked', color: 'amber', order: 4 },
+  { id: '1', slug: 'beginner', title: 'Beginner', description: 'Learn the basics of Kinyarwanda', price: 0, icon: 'graduation-cap', color: 'green', order: 1 },
+  { id: '2', slug: 'practice', title: 'Practice', description: 'AI-powered conversation practice', price: 9.99, icon: 'message-circle', color: 'blue', order: 2 },
+  { id: '3', slug: 'intermediate', title: 'Intermediate', description: 'Expand vocabulary and grammar rules', price: 14.99, icon: 'book-open', color: 'purple', order: 3 },
+  { id: '4', slug: 'fluent', title: 'Fluent', description: 'Stories and advanced content', price: 19.99, icon: 'book-marked', color: 'amber', order: 4 },
 ];
 
 export default function Home() {
@@ -49,10 +57,14 @@ export default function Home() {
   const [levels, setLevels] = useState<LevelData[]>(defaultLevels);
   const [paymentLevel, setPaymentLevel] = useState<LevelData | null>(null);
   const [levelsLoading, setLevelsLoading] = useState(true);
+  const [subscriptions, setSubscriptions] = useState<SubscriptionData[]>([]);
 
   useEffect(() => {
     loadLevels();
-  }, []);
+    if (user?.uid) {
+      loadSubscriptions();
+    }
+  }, [user?.uid]);
 
   const loadLevels = async () => {
     setLevelsLoading(true);
@@ -65,6 +77,34 @@ export default function Home() {
       console.log('Using default levels');
     }
     setLevelsLoading(false);
+  };
+
+  const loadSubscriptions = async () => {
+    try {
+      const res = await fetch('/api/profile/subscriptions');
+      const data = await res.json();
+      if (data.success) {
+        setSubscriptions(data.subscriptions || []);
+      }
+    } catch (error) {
+      console.error('Failed to load subscriptions:', error);
+    }
+  };
+
+  const isLevelAccessible = (levelId: string | number): boolean => {
+    const levelIdStr = String(levelId);
+    const levelIdNum = typeof levelId === 'number' ? levelId : parseInt(levelId);
+    const activeSub = subscriptions.find(
+      (s) => s.levelId === levelIdStr && s.status === 'active'
+    );
+    if (activeSub) {
+      const nextBilling = new Date(activeSub.nextBillingDate);
+      if (nextBilling > new Date()) {
+        return true;
+      }
+    }
+    const purchased = (userData?.purchasedLevels || []) as (string | number)[];
+    return purchased.includes(levelIdStr) || purchased.includes(levelIdNum);
   };
 
   if (loading) {
@@ -114,7 +154,7 @@ export default function Home() {
           <h2 className="text-xl font-bold text-gray-900 mb-6">Your Learning Levels</h2>
           <div className="grid sm:grid-cols-2 gap-6">
             {levels.map((level) => {
-              const isUnlocked = purchasedLevels.includes(parseInt(level.id));
+              const isUnlocked = isLevelAccessible(level.order);
               
               return (
                 <div key={level.id} className={`bg-white p-6 rounded-2xl shadow-sm border-2 transition-all ${isUnlocked ? 'border-gray-200 hover:border-primary-300 hover:shadow-md' : 'border-gray-100 opacity-90'}`}>
@@ -137,7 +177,7 @@ export default function Home() {
                           </span>
                         )}
                       </div>
-                      <p className="text-gray-500">{level.price === 0 ? 'Free' : `$${level.price}/mo`}</p>
+                      <p className="text-gray-500">{level.price === 0 ? 'Free' : `${level.price.toLocaleString()} RWF/mo`}</p>
                     </div>
                   </div>
 
@@ -145,7 +185,7 @@ export default function Home() {
 
                   {isUnlocked ? (
                     <Link
-                      href={`/learn/${level.title.toLowerCase()}`}
+                      href={`/learn/${level.slug || level.title.toLowerCase()}`}
                       className="flex items-center justify-center gap-2 w-full py-3 bg-primary-600 text-white rounded-xl hover:bg-primary-700 transition font-semibold"
                     >
                       Continue Learning
@@ -163,7 +203,7 @@ export default function Home() {
                       onClick={() => setPaymentLevel(level)}
                       className="w-full py-3 bg-gradient-to-r from-primary-600 to-primary-700 text-white rounded-xl hover:from-primary-700 hover:to-primary-800 font-semibold shadow-md"
                     >
-                      Unlock for ${level.price}/mo
+                      Subscribe for {level.price.toLocaleString()} RWF/mo
                     </button>
                   )}
                 </div>
@@ -193,17 +233,23 @@ export default function Home() {
       {paymentLevel && (
         <PaymentModal
           level={{
-            id: parseInt(paymentLevel.id),
+            id: paymentLevel.id,
+            slug: paymentLevel.slug || '',
             title: paymentLevel.title,
             price: paymentLevel.price,
           }}
-          userId={user.uid}
-          userEmail={user.email || ''}
+          user={{
+            uid: user.uid,
+            email: user.email || '',
+            displayName: user.displayName || '',
+          }}
           onClose={() => setPaymentLevel(null)}
           onSuccess={async () => {
-            await purchaseLevel(parseInt(paymentLevel.id));
+            await loadSubscriptions();
             setPaymentLevel(null);
           }}
+          isSubscription={true}
+          billingDate={new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toLocaleDateString()}
         />
       )}
 
@@ -357,7 +403,7 @@ function LandingPage({ showFeatures, setShowFeatures, signInWithGoogle }: {
                   <h3 className="text-xl font-bold text-gray-900 mb-2 text-center">{level.title}</h3>
                   <p className="text-gray-500 text-center mb-4">{level.description}</p>
                   <div className="text-center mb-6">
-                    <span className="text-4xl font-bold text-gray-900">{level.price === 0 ? 'Free' : `$${level.price}`}</span>
+                    <span className="text-4xl font-bold text-gray-900">{level.price === 0 ? 'Free' : `${level.price.toLocaleString()} RWF`}</span>
                     {level.price > 0 && <span className="text-gray-500">/mo</span>}
                   </div>
                   <button

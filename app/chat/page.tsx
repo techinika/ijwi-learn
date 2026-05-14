@@ -4,48 +4,84 @@ import { useState, useRef, useEffect } from 'react';
 import Link from 'next/link';
 import Navbar from '@/components/Navbar';
 import { useAuth } from '@/context/AuthContext';
+import { dbService } from '@/lib/database';
+import { Loading, FetchLoading } from '@/app/AppLoading';
 import { ArrowLeft, Send, User, MessageCircle } from 'lucide-react';
 
-interface ChatMessage {
+interface ChatMessageUI {
   id: string;
-  role: 'user' | 'teacher';
+  role: 'learner' | 'teacher';
   content: string;
+  timestamp: Date;
 }
-
-const teacherResponses = [
-  'Muraho! Ndashaka kubafasha iki?',
-  'Birahaguye! Ningarutse.',
-  'Murakoze kubaza. Ibyo ukeneye ni ibihe?',
-  'Wakwiyongeramo utubitubo.',
-  'Uburyo bwo kwiga bisheshe ni...',
-  'Ibyo ubaza ni byiza. Continue.',
-  'Ndumva ko ushaka kwiyubaka. Ni byiza!',
-  'Kwiyunga neza. Ndashaka kugira ngo wumve.',
-];
 
 export default function ChatPage() {
   const { user } = useAuth();
-  const [messages, setMessages] = useState<ChatMessage[]>([
-    { id: '1', role: 'teacher', content: 'Muraho! Ndashaka kubafasha iki?' },
-  ]);
+  const [messages, setMessages] = useState<ChatMessageUI[]>([]);
   const [input, setInput] = useState('');
-  const [isTyping, setIsTyping] = useState(false);
+  const [loading, setLoading] = useState(true);
+  const [sending, setSending] = useState(false);
   const messagesEndRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    if (!user) return;
+    loadMessages();
+    const interval = setInterval(loadMessages, 5000);
+    return () => clearInterval(interval);
+  }, [user]);
 
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
   }, [messages]);
 
-  const sendMessage = () => {
-    if (!input.trim()) return;
-    setMessages((prev) => [...prev, { id: Date.now().toString(), role: 'user', content: input }]);
+  const loadMessages = async () => {
+    if (!user) return;
+    try {
+      const msgs = await dbService.getChatMessages(user.uid);
+      setMessages(msgs.map(m => ({
+        id: m.id || '',
+        role: m.role,
+        content: m.content,
+        timestamp: m.timestamp instanceof Date ? m.timestamp : new Date(),
+      })));
+      if (msgs.length === 0) {
+        setMessages([{
+          id: 'system',
+          role: 'teacher',
+          content: 'Welcome! How can I help you learn Kinyarwanda today?',
+          timestamp: new Date(),
+        }]);
+      }
+    } catch (e) {
+      console.error('Failed to load messages', e);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const sendMessage = async () => {
+    if (!input.trim() || !user) return;
+    setSending(true);
+    const content = input.trim();
     setInput('');
-    setIsTyping(true);
-    setTimeout(() => {
-      const randomResponse = teacherResponses[Math.floor(Math.random() * teacherResponses.length)];
-      setMessages((prev) => [...prev, { id: (Date.now() + 1).toString(), role: 'teacher', content: randomResponse }]);
-      setIsTyping(false);
-    }, 2000);
+
+    await dbService.sendChatMessage({
+      userId: user.uid,
+      userName: user.displayName || 'Learner',
+      userEmail: user.email || '',
+      content,
+      role: 'learner',
+      timestamp: new Date(),
+      read: false,
+    });
+
+    setMessages(prev => [...prev, {
+      id: Date.now().toString(),
+      role: 'learner',
+      content,
+      timestamp: new Date(),
+    }]);
+    setSending(false);
   };
 
   if (!user) {
@@ -84,33 +120,30 @@ export default function ChatPage() {
               </div>
               <div>
                 <div className="font-semibold">Teacher Support</div>
-                <div className="text-sm text-emerald-200">Typically replies within 5 minutes</div>
+                <div className="text-sm text-emerald-200">Your messages are sent to the admin</div>
               </div>
             </div>
 
             <div className="h-[450px] flex flex-col">
               <div className="flex-1 p-5 overflow-y-auto space-y-4">
-                {messages.map((msg) => (
-                  <div key={msg.id} className={`flex ${msg.role === 'user' ? 'justify-end' : 'justify-start'}`}>
-                    <div className={`max-w-[75%] p-4 rounded-2xl ${
-                      msg.role === 'user'
-                        ? 'bg-primary-600 text-white'
-                        : 'bg-gray-100 text-gray-900'
-                    }`}>
-                      <p className="text-base">{msg.content}</p>
-                    </div>
+                {loading ? (
+                  <Loading text="Loading conversation..." />
+                ) : messages.length === 0 ? (
+                  <div className="text-center text-gray-400 py-8">
+                    <p>No messages yet. Start a conversation!</p>
                   </div>
-                ))}
-                {isTyping && (
-                  <div className="flex justify-start">
-                    <div className="bg-gray-100 p-4 rounded-2xl">
-                      <div className="flex gap-1">
-                        {[0, 0.1, 0.2].map((delay, i) => (
-                          <span key={i} className="w-2 h-2 bg-gray-400 rounded-full animate-bounce" style={{ animationDelay: `${delay}s` }}></span>
-                        ))}
+                ) : (
+                  messages.map((msg) => (
+                    <div key={msg.id} className={`flex ${msg.role === 'learner' ? 'justify-end' : 'justify-start'}`}>
+                      <div className={`max-w-[75%] p-4 rounded-2xl ${
+                        msg.role === 'learner'
+                          ? 'bg-primary-600 text-white'
+                          : 'bg-gray-100 text-gray-900'
+                      }`}>
+                        <p className="text-base">{msg.content}</p>
                       </div>
                     </div>
-                  </div>
+                  ))
                 )}
                 <div ref={messagesEndRef} />
               </div>
@@ -121,7 +154,7 @@ export default function ChatPage() {
                     type="text"
                     value={input}
                     onChange={(e) => setInput(e.target.value)}
-                    onKeyPress={(e) => e.key === 'Enter' && sendMessage()}
+                    onKeyDown={(e) => e.key === 'Enter' && sendMessage()}
                     placeholder="Type your message..."
                     className="flex-1 px-4 py-2.5 border border-gray-300 rounded-lg"
                   />
@@ -136,7 +169,7 @@ export default function ChatPage() {
           <div className="mt-6 bg-amber-50 rounded-xl p-5">
             <h3 className="font-semibold text-gray-900 mb-2 text-sm">Tips</h3>
             <ul className="text-gray-600 text-sm space-y-1">
-              <li>• Ask about grammar rules you don't understand</li>
+              <li>• Ask about grammar rules you don&apos;t understand</li>
               <li>• Request help with pronunciation</li>
               <li>• Ask for vocabulary explanations</li>
               <li>• Get feedback on your progress</li>

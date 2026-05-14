@@ -1,9 +1,11 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, use } from 'react';
 import Link from 'next/link';
+import { useRouter } from 'next/navigation';
 import Navbar from '@/components/Navbar';
-import { ArrowLeft, ChevronLeft, ChevronRight, BookOpen, Shuffle, RefreshCw, Play } from 'lucide-react';
+import { Loading, FetchLoading } from '@/app/AppLoading';
+import { ArrowLeft, ChevronLeft, ChevronRight, BookOpen, Shuffle, RefreshCw } from 'lucide-react';
 import { useAuth } from '@/context/AuthContext';
 import { dbService, Category, Level, Vocabulary } from '@/lib/database';
 import type { Vocabulary as VocabType } from '@/lib/database';
@@ -15,91 +17,110 @@ interface TopicItem {
   icon: React.ReactNode;
 }
 
-export default function BeginnerPage() {
-  const { userData } = useAuth();
+export default function LevelPage({ params }: { params: Promise<{ slug: string }> }) {
+  const { slug } = use(params);
+  const router = useRouter();
+  const { userData, user, recordLearningActivity } = useAuth();
   const preferredLang = userData?.preferredLanguage || 'en';
+  const [level, setLevel] = useState<Level | null>(null);
   const [topics, setTopics] = useState<TopicItem[]>([]);
   const [activeTopic, setActiveTopic] = useState<string>('');
   const [vocabulary, setVocabulary] = useState<VocabType[]>([]);
   const [currentIndex, setCurrentIndex] = useState(0);
   const [loading, setLoading] = useState(true);
+  const [fetchingVocab, setFetchingVocab] = useState(false);
+  const [viewedWords, setViewedWords] = useState<Set<string>>(new Set());
 
   useEffect(() => {
-    loadCategories();
-  }, []);
+    loadData();
+  }, [slug]);
 
   useEffect(() => {
     if (activeTopic) {
       loadVocabulary();
+      setViewedWords(new Set());
     }
   }, [activeTopic]);
 
-  const loadCategories = async () => {
+  useEffect(() => {
+    if (!user || !vocabulary[currentIndex]?.id || viewedWords.has(vocabulary[currentIndex].id)) return;
+    const wordId = vocabulary[currentIndex].id;
+    setViewedWords(prev => {
+      const newSet = new Set(prev);
+      newSet.add(wordId);
+      return newSet;
+    });
+    dbService.awardPoints(user.uid, 1, 'Read vocabulary', 'vocabulary');
+    recordLearningActivity();
+  }, [currentIndex, user, vocabulary]);
+
+  const loadData = async () => {
     setLoading(true);
     try {
       const [dbLevels, dbCategories] = await Promise.all([
         dbService.getLevels(),
         dbService.getCategories(),
       ]);
-      
-      const beginnerLevelId = dbLevels[0]?.id || '1';
-      const levelCategories = dbCategories.filter(c => 
-        c.levelId === beginnerLevelId || c.levelId === ''
+
+      const currentLevel = dbLevels.find(l => l.slug === slug);
+      if (!currentLevel) {
+        router.push('/learn');
+        return;
+      }
+      setLevel(currentLevel);
+
+      const levelCategories = dbCategories.filter(c =>
+        c.levelId === currentLevel.id || c.levelId === ''
       );
-      
+
       const topicItems: TopicItem[] = [
         { id: 'all', title: 'All', slug: '', icon: <Shuffle size={20} /> },
         ...levelCategories.map((cat) => ({
-          id: cat.slug,
+          id: cat.id,
           title: cat.name,
           slug: cat.slug,
           icon: <BookOpen size={20} />,
         })),
       ];
-      
-      if (topicItems.length > 0) {
-        setTopics(topicItems);
-        setActiveTopic('all');
-      } else {
-        setTopics([{ id: 'all', title: 'All', slug: '', icon: <Shuffle size={20} /> }]);
-        setActiveTopic('all');
-      }
-    } catch (e) {
-      console.log('Using default categories');
-      setTopics([{ id: 'all', title: 'All', slug: '', icon: <Shuffle size={20} /> }]);
+
+      setTopics(topicItems);
       setActiveTopic('all');
+    } catch (error) {
+      console.error('Error loading data:', error);
     }
     setLoading(false);
   };
 
   const loadVocabulary = async () => {
+    if (!level) return;
+    setFetchingVocab(true);
     try {
-      const dbLevels = await dbService.getLevels();
-      const beginnerLevelId = dbLevels[0]?.id || '1';
-      
       let filters: { levelId?: string; category?: string } = {};
-      
+
       if (activeTopic === 'all') {
-        filters = { levelId: beginnerLevelId };
+        filters = { levelId: level.id };
       } else if (activeTopic) {
-        filters = { levelId: beginnerLevelId, category: activeTopic };
+        filters = { levelId: level.id, category: activeTopic };
       }
-      
+
       const items = await dbService.getVocabulary(filters);
-      setVocabulary(items);
+      const shuffled = [...items].sort(() => Math.random() - 0.5);
+      setVocabulary(shuffled);
       setCurrentIndex(0);
-    } catch (e) {
-      console.log('Error loading vocabulary:', e);
+    } catch (error) {
+      console.error('Error loading vocabulary:', error);
       setVocabulary([]);
+    } finally {
+      setFetchingVocab(false);
     }
   };
 
   const items = vocabulary;
-  const currentItem = items[currentIndex] || { 
-    word: '', 
-    wordKinyarwanda: '', 
-    translations: {}, 
-    pronunciation: '' 
+  const currentItem = items[currentIndex] || {
+    word: '',
+    wordKinyarwanda: '',
+    translations: {},
+    pronunciation: ''
   };
 
   const nextCard = () => setCurrentIndex((prev) => (prev + 1) % items.length);
@@ -119,22 +140,21 @@ export default function BeginnerPage() {
       <main className="pt-28 pb-12 px-4">
         <div className="max-w-3xl mx-auto">
           <div className="flex items-center gap-4 mb-8">
-            <Link href="/" className="flex items-center gap-2 text-primary-600 hover:underline font-medium">
+            <Link href="/learn" className="flex items-center gap-2 text-primary-600 hover:underline font-medium">
               <ArrowLeft size={20} />
               Back
             </Link>
           </div>
 
-          <div className="bg-gradient-to-r from-primary-600 to-primary-700 rounded-2xl p-6 mb-8 text-white">
-            <h1 className="text-2xl font-bold mb-2">Beginner Level</h1>
-            <p className="text-primary-100">Master the fundamentals of Kinyarwanda</p>
-          </div>
+          {level && (
+            <div className="bg-gradient-to-r from-primary-600 to-primary-700 rounded-2xl p-6 mb-8 text-white">
+              <h1 className="text-2xl font-bold mb-2">{level.title}</h1>
+              <p className="text-primary-100">{level.description}</p>
+            </div>
+          )}
 
           {loading ? (
-            <div className="text-center py-12">
-              <div className="animate-spin w-10 h-10 border-4 border-primary-600 border-t-transparent rounded-full mx-auto mb-4"></div>
-              <p className="text-gray-500">Loading...</p>
-            </div>
+            <Loading fullScreen />
           ) : (
             <>
               <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
@@ -177,19 +197,26 @@ export default function BeginnerPage() {
                     </div>
 
                     <div className="p-8 min-h-[320px] flex items-center justify-center">
-                      <div className="text-center w-full">
-                        <div className="text-4xl font-bold text-gray-900 mb-4" style={{ fontFamily: 'Georgia, serif' }}>
-                          {getDisplayWord(currentItem)}
+                      <FetchLoading isLoading={fetchingVocab} fallback={
+                        <div className="text-center">
+                          <div className="animate-spin w-8 h-8 border-3 border-primary-600 border-t-transparent rounded-full mx-auto mb-3"></div>
+                          <p className="text-sm text-gray-500">Loading vocabulary...</p>
                         </div>
-                        {currentItem.pronunciation && (
-                          <div className="text-lg text-gray-400 italic mb-4">
-                            [{currentItem.pronunciation}]
+                      }>
+                        <div className="text-center w-full">
+                          <div className="text-4xl font-bold text-gray-900 mb-4" style={{ fontFamily: 'Georgia, serif' }}>
+                            {getDisplayWord(currentItem)}
                           </div>
-                        )}
-                        <div className="text-2xl text-emerald-600">
-                          {getTranslation(currentItem)}
+                          {currentItem.pronunciation && (
+                            <div className="text-lg text-gray-400 italic mb-4">
+                              [{currentItem.pronunciation}]
+                            </div>
+                          )}
+                          <div className="text-2xl text-emerald-600">
+                            {getTranslation(currentItem)}
+                          </div>
                         </div>
-                      </div>
+                      </FetchLoading>
                     </div>
 
                     <div className="border-t border-gray-100 p-4 flex justify-between">

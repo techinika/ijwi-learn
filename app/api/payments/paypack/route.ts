@@ -1,77 +1,88 @@
-import { NextRequest, NextResponse } from 'next/server';
+import { NextResponse } from "next/server";
 
-export async function POST(request: NextRequest) {
+export async function POST(req: Request) {
   try {
-    const body = await request.json();
-    const { amount, network, phone, reference, callbackUrl } = body;
+    const {
+      amount,
+      phone,
+      network,
+      reference,
+      user,
+      invoiceId,
+      levelId,
+      levelTitle,
+      levelSlug,
+      paymentType,
+      subscriptionId,
+    } = await req.json();
 
-    const PAYPACK_CLIENT_ID = process.env.PAYPACK_CLIENT_ID;
-    const PAYPACK_CLIENT_SECRET = process.env.PAYPACK_CLIENT_SECRET;
-    const PAYPACK_ENV = process.env.PAYPACK_ENV || 'sandbox';
-
-    if (!PAYPACK_CLIENT_ID || !PAYPACK_CLIENT_SECRET) {
-      return NextResponse.json({
-        success: false,
-        message: 'PayPack not configured',
-      });
+    if (!amount || !phone) {
+      return NextResponse.json({ success: false, message: "Amount and phone number are required" }, { status: 400 });
     }
 
-    const baseUrl = PAYPACK_ENV === 'live' 
-      ? 'https://paypack.rw/api' 
-      : 'https://paypack-staging.paypack.rw/api';
-
-    const authResponse = await fetch(`${baseUrl}/auth/token`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        client_id: PAYPACK_CLIENT_ID,
-        client_secret: PAYPACK_CLIENT_SECRET,
-      }),
-    });
-
-    const authData = await authResponse.json();
-
-    if (!authData.access_token) {
-      return NextResponse.json({
-        success: false,
-        message: 'Failed to authenticate with PayPack',
-      });
-    }
-
-    const checkoutResponse = await fetch(`${baseUrl}/transactions/cashin`, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'Authorization': `Bearer ${authData.access_token}`,
+    const authRes = await fetch(
+      "https://payments.paypack.rw/api/auth/agents/authorize",
+      {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Accept: "application/json",
+        },
+        body: JSON.stringify({
+          client_id: process.env.PAYPACK_CLIENT_ID,
+          client_secret: process.env.PAYPACK_CLIENT_SECRET,
+        }),
       },
-      body: JSON.stringify({
-        amount: Math.round(amount * 1000),
-        network: network,
-        phone: phone,
-        reference: reference,
-      }),
-    });
+    );
 
-    const checkoutData = await checkoutResponse.json();
+    const authData = await authRes.json();
+    
+    if (!authData.access) {
+      return NextResponse.json({ success: false, message: "Failed to authenticate with Paypack" }, { status: 400 });
+    }
 
-    if (checkoutData.status === 'pending' || checkoutData.status === 'initiated') {
+    const access = authData.access;
+
+    const payRes = await fetch(
+      "https://payments.paypack.rw/api/transactions/cashin",
+      {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${access}`,
+          "X-Webhook-Mode": process.env.NODE_ENV === "production" ? "production" : "development",
+        },
+        body: JSON.stringify({ 
+          amount: Number(amount), 
+          number: phone,
+          client_id: user?.id,
+          client_name: user?.name,
+          client_email: user?.email,
+          level_id: levelId,
+          level_title: levelTitle,
+          level_slug: levelSlug,
+          invoice_id: invoiceId,
+          subscription_id: subscriptionId,
+          payment_type: paymentType,
+          reference: reference,
+        }),
+      },
+    );
+
+    const payData = await payRes.json();
+
+    if (payData.ref) {
       return NextResponse.json({
         success: true,
-        message: 'STK push sent. Please check your phone to confirm.',
-        transactionId: checkoutData.ref,
+        ref: payData.ref,
+        status: payData.status,
+        message: "Payment initiated. Check your phone for STK push.",
       });
     }
 
-    return NextResponse.json({
-      success: false,
-      message: checkoutData.message || 'Payment failed',
-    });
-
+    return NextResponse.json({ success: false, message: payData.message || "Payment failed to initiate" }, { status: 400 });
   } catch (error) {
-    console.error('PayPack error:', error);
-    return NextResponse.json({
-      success: false,
-      message: 'Payment processing error',
-    });
+    console.error("Paypack payment error:", error);
+    return NextResponse.json({ success: false, message: "Internal Server Error" }, { status: 500 });
   }
 }

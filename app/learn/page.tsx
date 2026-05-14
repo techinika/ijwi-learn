@@ -14,17 +14,10 @@ const colorMap: Record<string, string> = {
   amber: 'bg-amber-500',
 };
 
-const defaultLevels: Level[] = [
-  { id: '1', title: 'Beginner', description: 'Learn the basics of Kinyarwanda', price: 0, icon: 'graduation-cap', color: 'green', order: 1, isActive: true },
-  { id: '2', title: 'Practice', description: 'Practice with AI conversation partner', price: 9.99, icon: 'message-circle', color: 'blue', order: 2, isActive: true },
-  { id: '3', title: 'Intermediate', description: 'Expand vocabulary and grammar rules', price: 14.99, icon: 'book-open', color: 'purple', order: 3, isActive: true },
-  { id: '4', title: 'Fluent', description: 'Stories and advanced content', price: 19.99, icon: 'book-marked', color: 'amber', order: 4, isActive: true },
-];
-
 export default function LearnPage() {
   const { userData } = useAuth();
   const purchasedLevels = userData?.purchasedLevels || [];
-  const [levels, setLevels] = useState<Level[]>(defaultLevels);
+  const [levels, setLevels] = useState<Level[]>([]);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
@@ -34,11 +27,9 @@ export default function LearnPage() {
   const loadLevels = async () => {
     try {
       const dbLevels = await dbService.getLevels();
-      if (dbLevels.length > 0) {
-        setLevels(dbLevels);
-      }
+      setLevels(dbLevels);
     } catch (error) {
-      console.log('Using default levels');
+      console.error('Error loading levels:', error);
     }
     setLoading(false);
   };
@@ -61,17 +52,21 @@ export default function LearnPage() {
                 <div className="animate-spin w-8 h-8 border-4 border-primary-600 border-t-transparent rounded-full mx-auto mb-4"></div>
                 <p className="text-gray-500">Loading levels...</p>
               </div>
+            ) : levels.length === 0 ? (
+              <div className="text-center py-12 bg-white rounded-xl border border-gray-200">
+                <p className="text-gray-500">No levels available yet.</p>
+              </div>
             ) : (
               levels.map((level) => {
-                const isUnlocked = purchasedLevels.includes(parseInt(level.id));
+                const isUnlocked = purchasedLevels.includes(level.order);
                 const levelColor = colorMap[level.color] || 'bg-gray-500';
                 return (
                   <Link
                     key={level.id}
-                    href={isUnlocked ? `/learn/${level.title.toLowerCase()}` : '#'}
+                    href={isUnlocked ? `/learn/${level.slug}` : '#'}
                     className={`flex items-center gap-5 p-5 rounded-xl transition ${
-                      isUnlocked 
-                        ? 'bg-white hover:shadow-md border border-gray-200' 
+                      isUnlocked
+                        ? 'bg-white hover:shadow-md border border-gray-200'
                         : 'bg-gray-100 border border-gray-200 cursor-not-allowed'
                     }`}
                   >

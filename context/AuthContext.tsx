@@ -4,19 +4,23 @@ import { createContext, useContext, useEffect, useState, ReactNode } from 'react
 import { User, onAuthStateChanged, signInWithPopup, signOut } from 'firebase/auth';
 import { auth, googleProvider, db } from '@/lib/firebase';
 import { doc, getDoc, setDoc } from 'firebase/firestore';
+import { dbService } from '@/lib/database';
 
 interface UserData {
   uid: string;
   email: string;
   displayName: string;
   photoURL: string;
+  phone?: string;
   currentLevel: number;
   purchasedLevels: number[];
   isAdmin: boolean;
   isTeacher: boolean;
   totalPoints: number;
+  meritPoints: number;
   testsCompleted: number;
   consecutivePasses: number;
+  lastActivityDate: string;
   vocabularyLearned: number;
   preferredLanguage: string;
   createdAt: Date;
@@ -36,6 +40,8 @@ interface AuthContextType {
   incrementTestsCompleted: () => Promise<void>;
   incrementConsecutivePasses: () => Promise<void>;
   resetConsecutivePasses: () => Promise<void>;
+  recordLearningActivity: () => Promise<void>;
+  updateUserProfile: (data: { displayName?: string; phone?: string }) => Promise<void>;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -54,7 +60,11 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       if (currentUser) {
         const userDoc = await getDoc(doc(db, 'users', currentUser.uid));
         if (userDoc.exists()) {
-          setUserData(userDoc.data() as UserData);
+          const data = userDoc.data();
+          if (data.createdAt && typeof data.createdAt.toDate === 'function') {
+            data.createdAt = data.createdAt.toDate();
+          }
+          setUserData(data as UserData);
         } else {
           const newUserData: UserData = {
             uid: currentUser.uid,
@@ -66,8 +76,10 @@ export function AuthProvider({ children }: { children: ReactNode }) {
             isAdmin: false,
             isTeacher: false,
             totalPoints: 0,
+            meritPoints: 0,
             testsCompleted: 0,
             consecutivePasses: 0,
+            lastActivityDate: new Date().toISOString().split('T')[0],
             vocabularyLearned: 0,
             preferredLanguage: 'en',
             createdAt: new Date(),
@@ -111,7 +123,11 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const purchaseLevel = async (level: number) => {
     if (!user || !userData) return;
     const newPurchasedLevels = [...new Set([...userData.purchasedLevels, level])];
+    const isNewLevel = !userData.purchasedLevels.includes(level);
     await updateUserData({ purchasedLevels: newPurchasedLevels });
+    if (isNewLevel) {
+      await dbService.awardPoints(user.uid, 50, 'Level upgrade', 'merit');
+    }
   };
 
   const addPoints = async (points: number) => {
@@ -137,6 +153,37 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     await updateUserData({ consecutivePasses: 0 });
   };
 
+  const recordLearningActivity = async () => {
+    if (!user || !userData) return;
+    const today = new Date().toISOString().split('T')[0];
+    const yesterday = new Date(Date.now() - 86400000).toISOString().split('T')[0];
+    const lastActivity = userData.lastActivityDate;
+
+    if (lastActivity === today) return;
+
+    let newStreak = 1;
+    if (lastActivity === yesterday) {
+      newStreak = (userData.consecutivePasses || 0) + 1;
+    }
+
+    await updateUserData({
+      lastActivityDate: today,
+      consecutivePasses: newStreak,
+    });
+  };
+
+  const updateUserProfile = async (data: { displayName?: string; phone?: string }) => {
+    if (!user) return;
+    const updates: Partial<UserData> = {};
+    if (data.displayName !== undefined) {
+      updates.displayName = data.displayName;
+    }
+    if (data.phone !== undefined) {
+      updates.phone = data.phone;
+    }
+    await updateUserData(updates);
+  };
+
   return (
     <AuthContext.Provider
       value={{
@@ -153,6 +200,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         incrementTestsCompleted,
         incrementConsecutivePasses,
         resetConsecutivePasses,
+        recordLearningActivity,
+        updateUserProfile,
       }}
     >
       {children}

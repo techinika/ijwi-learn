@@ -1,71 +1,88 @@
 'use client';
 
-import { useState, useEffect, useMemo } from 'react';
+import { useState, useEffect } from 'react';
 import Link from 'next/link';
 import Navbar from '@/components/Navbar';
 import { useAuth } from '@/context/AuthContext';
-import { dbService, UserProfile } from '@/lib/database';
+import { dbService, ChatMessage, ChatThread } from '@/lib/database';
+import { Loading, FetchLoading, ListSkeleton } from '@/app/AppLoading';
 import { ArrowLeft, MessageCircle, Users, Send } from 'lucide-react';
 
-interface ChatMessage {
-  role: 'learner' | 'teacher';
-  text: string;
-  time: string;
-}
-
 export default function AdminChatPage() {
-  const { isAdmin } = useAuth();
-  const [users, setUsers] = useState<UserProfile[]>([]);
+  const { isAdmin, isTeacher } = useAuth();
+  const [threads, setThreads] = useState<ChatThread[]>([]);
   const [loading, setLoading] = useState(true);
-  const [selectedUser, setSelectedUser] = useState<UserProfile | null>(null);
+  const [fetchingMessages, setFetchingMessages] = useState(false);
+  const [sending, setSending] = useState(false);
+  const [selectedUserId, setSelectedUserId] = useState<string | null>(null);
+  const [selectedUserName, setSelectedUserName] = useState('');
   const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [newMessage, setNewMessage] = useState('');
 
-  const learners = useMemo(
-    () => users.filter(u => !u.isAdmin && !u.isTeacher),
-    [users]
-  );
-
   useEffect(() => {
-    dbService.getUsers()
-      .then(data => {
-        setUsers(data);
-        setLoading(false);
-      })
-      .catch(e => {
-        console.error('Failed to load users', e);
-        setLoading(false);
-      });
+    loadThreads();
   }, []);
 
-  const openChat = (user: UserProfile) => {
-    setSelectedUser(user);
-    setMessages([
-      { role: 'learner', text: 'Murakoze! Nifuza kwiga Kinyarwanda.', time: '10:30 AM' },
-      { role: 'teacher', text: "Urabasha! Reba amasomo y'ibanza.", time: '10:31 AM' },
-      { role: 'learner', text: 'Amasomo meza cyane! Narize amagambo menshi.', time: '10:35 AM' },
-    ]);
+  useEffect(() => {
+    if (selectedUserId) {
+      loadMessages(selectedUserId);
+    }
+  }, [selectedUserId]);
+
+  const loadThreads = async () => {
+    try {
+      const data = await dbService.getAllChatThreads();
+      setThreads(data);
+    } catch (e) {
+      console.error('Failed to load threads', e);
+    } finally {
+      setLoading(false);
+    }
   };
 
-  const sendMessage = () => {
-    if (!newMessage.trim()) return;
-    setMessages(prev => [...prev, {
-      role: 'teacher',
-      text: newMessage.trim(),
-      time: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
-    }]);
+  const loadMessages = async (userId: string) => {
+    setFetchingMessages(true);
+    try {
+      const msgs = await dbService.getChatMessages(userId);
+      setMessages(msgs);
+      await dbService.markMessagesAsRead(userId);
+      loadThreads();
+    } catch (e) {
+      console.error('Failed to load messages', e);
+    } finally {
+      setFetchingMessages(false);
+    }
+  };
+
+  const sendMessage = async () => {
+    if (!newMessage.trim() || !selectedUserId) return;
+    setSending(true);
+    const content = newMessage.trim();
     setNewMessage('');
+
+    await dbService.sendChatMessage({
+      userId: selectedUserId,
+      userName: selectedUserName,
+      userEmail: '',
+      content,
+      role: 'teacher',
+      timestamp: new Date(),
+      read: false,
+    });
+
+    setMessages(prev => [...prev, {
+      userId: selectedUserId,
+      userName: selectedUserName,
+      userEmail: '',
+      content,
+      role: 'teacher',
+      timestamp: new Date(),
+      read: true,
+    }]);
+    setSending(false);
   };
 
-  const getLastActivity = (user: UserProfile) => {
-    const hash = user.id.split('').reduce((acc, c) => acc + c.charCodeAt(0), 0);
-    const days = hash % 5;
-    if (days === 0) return { label: 'Active now', color: 'bg-green-500' };
-    if (days === 1) return { label: 'Today', color: 'bg-yellow-500' };
-    return { label: `${days} days ago`, color: 'bg-gray-400' };
-  };
-
-  if (!isAdmin) {
+  if (!isAdmin && !isTeacher) {
     return (
       <div className="min-h-screen bg-gray-50 flex items-center justify-center">
         <div className="text-center">
@@ -75,6 +92,11 @@ export default function AdminChatPage() {
       </div>
     );
   }
+
+  const formatTime = (ts: Date | { toDate(): Date }) => {
+    const date = 'toDate' in ts ? ts.toDate() : ts;
+    return date.toLocaleTimeString();
+  };
 
   return (
     <div className="min-h-screen bg-gray-50">
@@ -88,29 +110,39 @@ export default function AdminChatPage() {
             </Link>
           </div>
 
-          {selectedUser ? (
+          {selectedUserId ? (
             <>
               <div className="bg-gradient-to-r from-cyan-600 to-cyan-700 rounded-2xl p-6 text-white mb-8 flex items-center gap-3">
-                <button onClick={() => setSelectedUser(null)} className="text-white/80 hover:text-white transition-colors">
+                <button onClick={() => setSelectedUserId(null)} className="text-white/80 hover:text-white transition-colors">
                   <ArrowLeft size={24} />
                 </button>
                 <div className="flex-1">
-                  <h1 className="text-2xl font-bold">Chat with {selectedUser.displayName}</h1>
-                  <p className="text-cyan-100 mt-1">{selectedUser.email}</p>
+                  <h1 className="text-2xl font-bold">Chat with {selectedUserName}</h1>
+                  <p className="text-cyan-100 mt-1">Reply to learner&apos;s messages</p>
                 </div>
                 <MessageCircle size={28} />
               </div>
 
               <div className="bg-white rounded-xl shadow-sm border border-gray-200 mb-4">
                 <div className="h-96 overflow-y-auto p-6 space-y-4">
-                  {messages.map((msg, i) => (
-                    <div key={i} className={`flex ${msg.role === 'teacher' ? 'justify-end' : 'justify-start'}`}>
-                      <div className={`max-w-md rounded-2xl p-4 ${msg.role === 'teacher' ? 'bg-primary-600 text-white rounded-br-md' : 'bg-gray-100 text-gray-900 rounded-bl-md'}`}>
-                        <p className="text-sm">{msg.text}</p>
-                        <p className={`text-xs mt-2 ${msg.role === 'teacher' ? 'text-primary-200' : 'text-gray-400'}`}>{msg.time}</p>
+                  {messages.length === 0 ? (
+                    <p className="text-center text-gray-400">No messages yet.</p>
+                  ) : (
+                    messages.map((msg, i) => (
+                      <div key={i} className={`flex ${msg.role === 'teacher' ? 'justify-end' : 'justify-start'}`}>
+                        <div className={`max-w-md rounded-2xl p-4 ${
+                          msg.role === 'teacher'
+                            ? 'bg-primary-600 text-white rounded-br-md'
+                            : 'bg-gray-100 text-gray-900 rounded-bl-md'
+                        }`}>
+                          <p className="text-sm">{msg.content}</p>
+                          <p className={`text-xs mt-2 ${msg.role === 'teacher' ? 'text-primary-200' : 'text-gray-400'}`}>
+                            {formatTime(msg.timestamp)}
+                          </p>
+                        </div>
                       </div>
-                    </div>
-                  ))}
+                    ))
+                  )}
                 </div>
 
                 <div className="border-t border-gray-200 p-4 flex gap-3">
@@ -138,47 +170,50 @@ export default function AdminChatPage() {
                 <Users size={28} />
                 <div>
                   <h1 className="text-2xl font-bold">Chat Monitor</h1>
-                  <p className="text-cyan-100 mt-1">Monitor teacher-learner conversations ({learners.length})</p>
+                  <p className="text-cyan-100 mt-1">Monitor and reply to learner messages ({threads.length})</p>
                 </div>
               </div>
 
               <div className="grid gap-4">
                 {loading ? (
-                  <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-8 text-center text-gray-400">Loading...</div>
-                ) : learners.length === 0 ? (
-                  <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-8 text-center text-gray-400">No learners found.</div>
-                ) : learners.map(learner => {
-                  const activity = getLastActivity(learner);
-                  return (
-                    <div key={learner.id} className="bg-white rounded-xl shadow-sm border border-gray-200 p-5 flex items-center gap-4 hover:shadow-md transition-shadow">
-                      <div className="relative">
-                        {learner.photoURL ? (
-                          <img src={learner.photoURL} alt="" className="w-12 h-12 rounded-full" />
-                        ) : (
-                          <div className="w-12 h-12 bg-cyan-100 rounded-full flex items-center justify-center text-cyan-600 text-lg font-bold">
-                            {learner.displayName?.charAt(0)?.toUpperCase() || '?'}
+                  <ListSkeleton />
+                ) : threads.length === 0 ? (
+                  <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-8 text-center text-gray-400">
+                    No messages yet. Learners will appear here when they send messages.
+                  </div>
+                ) : (
+                  threads.map(thread => (
+                    <div key={thread.id} className="bg-white rounded-xl shadow-sm border border-gray-200 p-5 flex items-center gap-4 hover:shadow-md transition-shadow">
+                      <div className="flex-1 min-w-0 cursor-pointer" onClick={() => {
+                        setSelectedUserId(thread.learnerId);
+                        setSelectedUserName(thread.learnerName);
+                      }}>
+                        <div className="font-semibold text-gray-900">{thread.learnerName}</div>
+                        <div className="text-sm text-gray-500 truncate">{thread.learnerEmail}</div>
+                        {thread.lastMessage && (
+                          <div className="text-sm text-gray-400 truncate mt-1">
+                            {thread.lastMessage}
                           </div>
                         )}
-                        <span className={`absolute -bottom-0.5 -right-0.5 w-3.5 h-3.5 ${activity.color} rounded-full border-2 border-white`} />
                       </div>
-                      <div className="flex-1 min-w-0">
-                        <div className="font-semibold text-gray-900">{learner.displayName}</div>
-                        <div className="text-sm text-gray-500 truncate">{learner.email}</div>
-                        <div className="flex items-center gap-2 mt-1">
-                          <span className={`inline-block w-2 h-2 ${activity.color} rounded-full`} />
-                          <span className="text-xs text-gray-400">{activity.label}</span>
-                        </div>
-                      </div>
+                      {thread.unreadCount > 0 && (
+                        <span className="px-2 py-1 bg-red-500 text-white text-xs rounded-full">
+                          {thread.unreadCount} new
+                        </span>
+                      )}
                       <button
-                        onClick={() => openChat(learner)}
+                        onClick={() => {
+                          setSelectedUserId(thread.learnerId);
+                          setSelectedUserName(thread.learnerName);
+                        }}
                         className="flex items-center gap-2 px-4 py-2.5 bg-cyan-600 text-white rounded-xl hover:bg-cyan-700 transition-colors text-sm font-medium whitespace-nowrap"
                       >
                         <MessageCircle size={16} />
                         Chat
                       </button>
                     </div>
-                  );
-                })}
+                  ))
+                )}
               </div>
             </>
           )}
