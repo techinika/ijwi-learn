@@ -405,7 +405,7 @@ class DatabaseService {
 
   // USERS
   async getUsers(): Promise<UserProfile[]> {
-    const q = query(this.usersCollection, orderBy('totalPoints', 'desc'), limit(100));
+    const q = query(this.usersCollection, orderBy('totalPoints', 'desc'), limit(18));
     const snapshot = await getDocs(q);
     return snapshot.docs.map(d => ({ id: d.id, ...d.data() } as UserProfile));
   }

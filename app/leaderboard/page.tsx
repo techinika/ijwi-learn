@@ -4,7 +4,7 @@ import { useState, useEffect } from 'react';
 import Link from 'next/link';
 import Navbar from '@/components/Navbar';
 import { dbService, Level } from '@/lib/database';
-import { ArrowLeft, Trophy, Medal, Crown, BookOpen, GraduationCap, FileText, MessageCircle, Play } from 'lucide-react';
+import { ArrowLeft, Trophy, Medal, Crown, BookOpen, FileText, MessageCircle, Play, ChevronRight } from 'lucide-react';
 
 interface LeaderboardUser {
   id: string;
@@ -29,6 +29,9 @@ const defaultLevels = [
   { id: '3', title: 'Intermediate' },
   { id: '4', title: 'Fluent' },
 ];
+
+const LEAGUE_SIZE = 15;
+const BUBBLE_SIZE = 3;
 
 export default function LeaderboardPage() {
   const [selectedCategory, setSelectedCategory] = useState('overall');
@@ -73,12 +76,26 @@ export default function LeaderboardPage() {
   };
 
   const sortedUsers = [...leaderboard].sort((a, b) => getCategoryValue(b) - getCategoryValue(a));
+  const league = sortedUsers.slice(0, LEAGUE_SIZE);
+  const bubble = sortedUsers.slice(LEAGUE_SIZE, LEAGUE_SIZE + BUBBLE_SIZE);
 
   const getRankIcon = (rank: number) => {
     if (rank === 0) return <Crown size={24} className="text-amber-500" />;
     if (rank === 1) return <Medal size={24} className="text-gray-400" />;
     if (rank === 2) return <Medal size={24} className="text-amber-700" />;
     return null;
+  };
+
+  const getRankBg = (rank: number) => {
+    if (rank === 0) return 'bg-amber-50';
+    if (rank === 1) return 'bg-gray-50';
+    if (rank === 2) return 'bg-amber-50/50';
+    return '';
+  };
+
+  const getBubblePlaceholder = (rank: number) => {
+    const placeholders = ['1st Reserve', '2nd Reserve', '3rd Reserve'];
+    return placeholders[rank] || '';
   };
 
   return (
@@ -137,81 +154,136 @@ export default function LeaderboardPage() {
             <div className="text-center py-12 text-gray-500">Loading leaderboard...</div>
           ) : (
             <>
-              <div className="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden">
-                <table className="w-full">
-                  <thead className="bg-gray-50">
-                    <tr>
-                      <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Rank</th>
-                      <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Learner</th>
-                      <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">
-                        {selectedCategory === 'vocabulary' ? 'Words' : selectedCategory === 'tests' ? 'Tests' : selectedCategory === 'practice' ? 'Streak' : 'Points'}
-                      </th>
-                      <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Tests</th>
-                      <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Streak</th>
-                    </tr>
-                  </thead>
-                  <tbody className="divide-y divide-gray-100">
-                    {sortedUsers.map((learner, idx) => {
-                      const rank = idx + 1;
-                      return (
-                        <tr key={learner.id} className="hover:bg-gray-50">
-                          <td className="px-4 py-3">
-                            <div className="flex items-center justify-center w-8">
-                              {getRankIcon(idx) || <span className="text-lg font-bold text-gray-500">#{rank}</span>}
-                            </div>
-                          </td>
-                          <td className="px-4 py-3">
-                            <div className="flex items-center gap-3">
-                              <div className="w-10 h-10 bg-gray-200 rounded-full flex items-center justify-center font-semibold text-gray-600">
-                                {learner.displayName?.charAt(0) || 'U'}
+              <div className="mb-6">
+                <div className="flex items-center gap-3 mb-4">
+                  <Trophy size={24} className="text-amber-500" />
+                  <h2 className="text-xl font-bold text-gray-900">Champions League</h2>
+                  <span className="text-sm text-gray-400">Top {LEAGUE_SIZE}</span>
+                </div>
+                <div className="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden">
+                  <table className="w-full">
+                    <thead className="bg-gray-50">
+                      <tr>
+                        <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Rank</th>
+                        <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Learner</th>
+                        <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">
+                          {selectedCategory === 'vocabulary' ? 'Words' : selectedCategory === 'tests' ? 'Tests' : selectedCategory === 'practice' ? 'Streak' : 'Points'}
+                        </th>
+                        <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Tests</th>
+                        <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Streak</th>
+                      </tr>
+                    </thead>
+                    <tbody className="divide-y divide-gray-100">
+                      {league.map((learner, idx) => {
+                        const rank = idx + 1;
+                        return (
+                          <tr key={learner.id} className={`hover:bg-gray-50 ${getRankBg(idx)}`}>
+                            <td className="px-4 py-3">
+                              <div className="flex items-center justify-center w-8">
+                                {getRankIcon(idx) || <span className="text-lg font-bold text-gray-500">#{rank}</span>}
                               </div>
-                              <span className="font-medium text-gray-900">{learner.displayName}</span>
-                            </div>
-                          </td>
-                          <td className="px-4 py-3">
-                            <span className="font-bold text-gray-900">
-                              {selectedCategory === 'vocabulary' ? learner.vocabularyLearned :
-                               selectedCategory === 'tests' ? learner.testsCompleted :
-                               selectedCategory === 'practice' ? learner.consecutivePasses :
-                               learner.totalPoints}
-                            </span>
-                          </td>
-                          <td className="px-4 py-3 text-gray-600">{learner.testsCompleted}</td>
-                          <td className="px-4 py-3">
-                            <span className={`px-2 py-1 rounded-full text-xs font-medium ${
-                              learner.consecutivePasses >= 5 ? 'bg-emerald-100 text-emerald-700' :
-                              learner.consecutivePasses >= 3 ? 'bg-amber-100 text-amber-700' :
-                              'bg-gray-100 text-gray-600'
-                            }`}>
-                              {learner.consecutivePasses} 🔥
-                            </span>
-                          </td>
-                        </tr>
-                      );
-                    })}
-                  </tbody>
-                </table>
-                {sortedUsers.length === 0 && (
-                  <div className="p-8 text-center text-gray-500">No learners found</div>
-                )}
+                            </td>
+                            <td className="px-4 py-3">
+                              <div className="flex items-center gap-3">
+                                <div className="w-10 h-10 bg-gray-200 rounded-full flex items-center justify-center font-semibold text-gray-600">
+                                  {learner.displayName?.charAt(0) || 'U'}
+                                </div>
+                                <span className="font-medium text-gray-900">{learner.displayName}</span>
+                              </div>
+                            </td>
+                            <td className="px-4 py-3">
+                              <span className="font-bold text-gray-900">
+                                {selectedCategory === 'vocabulary' ? learner.vocabularyLearned :
+                                 selectedCategory === 'tests' ? learner.testsCompleted :
+                                 selectedCategory === 'practice' ? learner.consecutivePasses :
+                                 learner.totalPoints}
+                              </span>
+                            </td>
+                            <td className="px-4 py-3 text-gray-600">{learner.testsCompleted}</td>
+                            <td className="px-4 py-3">
+                              <span className={`px-2 py-1 rounded-full text-xs font-medium ${
+                                learner.consecutivePasses >= 5 ? 'bg-emerald-100 text-emerald-700' :
+                                learner.consecutivePasses >= 3 ? 'bg-amber-100 text-amber-700' :
+                                'bg-gray-100 text-gray-600'
+                              }`}>
+                                {learner.consecutivePasses} 🔥
+                              </span>
+                            </td>
+                          </tr>
+                        );
+                      })}
+                    </tbody>
+                  </table>
+                  {league.length === 0 && (
+                    <div className="p-8 text-center text-gray-500">No learners in the league yet</div>
+                  )}
+                </div>
               </div>
 
-              {sortedUsers.length >= 3 && (
-                <div className="mt-8 grid grid-cols-3 gap-4">
-                  <div className="bg-white p-5 rounded-xl shadow-sm border border-gray-200 text-center">
-                    <Trophy size={32} className="mx-auto mb-2 text-amber-500" />
-                    <div className="text-2xl font-bold text-gray-900">{sortedUsers[0]?.displayName || '-'}</div>
-                    <div className="text-sm text-gray-500">Top Learner</div>
+              {bubble.length > 0 && (
+                <div>
+                  <div className="flex items-center gap-3 mb-4">
+                    <ChevronRight size={24} className="text-gray-400" />
+                    <h2 className="text-xl font-bold text-gray-900">On the Bubble</h2>
+                    <span className="text-sm text-gray-400">Next {BUBBLE_SIZE} to enter</span>
                   </div>
-                  <div className="bg-white p-5 rounded-xl shadow-sm border border-gray-200 text-center">
-                    <Medal size={32} className="mx-auto mb-2 text-gray-400" />
-                    <div className="text-2xl font-bold text-gray-900">{sortedUsers[1]?.displayName || '-'}</div>
-                    <div className="text-sm text-gray-500">2nd Place</div>
-                  </div>
-                  <div className="bg-white p-5 rounded-xl shadow-sm border border-gray-200 text-center">
-                    <Medal size={32} className="mx-auto mb-2 text-amber-700" />
-                    <div className="text-2xl font-bold text-gray-900">{sortedUsers[2]?.displayName || '-'}</div>
-                    <div className="text-sm text-gray-500">3rd Place</div>
+                  <div className="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden border-dashed">
+                    <table className="w-full">
+                      <thead className="bg-gray-50">
+                        <tr>
+                          <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Rank</th>
+                          <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Learner</th>
+                          <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">
+                            {selectedCategory === 'vocabulary' ? 'Words' : selectedCategory === 'tests' ? 'Tests' : selectedCategory === 'practice' ? 'Streak' : 'Points'}
+                          </th>
+                          <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Tests</th>
+                          <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Streak</th>
+                        </tr>
+                      </thead>
+                      <tbody className="divide-y divide-gray-100">
+                        {bubble.map((learner, idx) => {
+                          const globalRank = LEAGUE_SIZE + idx + 1;
+                          return (
+                            <tr key={learner.id} className="hover:bg-gray-50">
+                              <td className="px-4 py-3">
+                                <div className="flex items-center justify-center w-8">
+                                  <span className="text-lg font-bold text-gray-400">#{globalRank}</span>
+                                </div>
+                              </td>
+                              <td className="px-4 py-3">
+                                <div className="flex items-center gap-3">
+                                  <div className="w-10 h-10 bg-gray-100 rounded-full flex items-center justify-center font-semibold text-gray-400">
+                                    {learner.displayName?.charAt(0) || 'U'}
+                                  </div>
+                                  <div>
+                                    <span className="font-medium text-gray-900">{learner.displayName}</span>
+                                    <span className="block text-xs text-gray-400">{getBubblePlaceholder(idx)}</span>
+                                  </div>
+                                </div>
+                              </td>
+                              <td className="px-4 py-3">
+                                <span className="font-bold text-gray-900">
+                                  {selectedCategory === 'vocabulary' ? learner.vocabularyLearned :
+                                   selectedCategory === 'tests' ? learner.testsCompleted :
+                                   selectedCategory === 'practice' ? learner.consecutivePasses :
+                                   learner.totalPoints}
+                                </span>
+                              </td>
+                              <td className="px-4 py-3 text-gray-600">{learner.testsCompleted}</td>
+                              <td className="px-4 py-3">
+                                <span className={`px-2 py-1 rounded-full text-xs font-medium ${
+                                  learner.consecutivePasses >= 5 ? 'bg-emerald-100 text-emerald-700' :
+                                  learner.consecutivePasses >= 3 ? 'bg-amber-100 text-amber-700' :
+                                  'bg-gray-100 text-gray-600'
+                                }`}>
+                                  {learner.consecutivePasses} 🔥
+                                </span>
+                              </td>
+                            </tr>
+                          );
+                        })}
+                      </tbody>
+                    </table>
                   </div>
                 </div>
               )}
