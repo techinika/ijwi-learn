@@ -208,10 +208,7 @@ chats/{chatId}
 
 ### Protected Pages (Require Auth)
 2. **Login** (`/login`) - Google sign-in only
-3. **Beginner** (`/learn/beginner`) - Basic vocabulary, phrases
-4. **Practice** (`/learn/practice`) - AI chat interface
-5. **Intermediate** (`/learn/intermediate`) - Vocabulary and grammar
-6. **Fluent** (`/learn/fluent`) - Stories and texts
+3. **Level Page** (`/learn/[slug]`) - Dynamic level pages with vocabulary flashcards
 7. **Videos** (`/videos`) - Video library
 8. **Tests** (`/tests/[levelId]`) - Level tests
 9. **Certificates** (`/certificates`) - User certificates

@@ -1,10 +1,12 @@
 'use client';
 
 import { useState, useEffect } from 'react';
+import dynamic from 'next/dynamic';
 import Navbar from '@/components/Navbar';
 import { useAuth } from '@/context/AuthContext';
-import PaymentModal from '@/components/PaymentModal';
 import { dbService } from '@/lib/database';
+
+const PaymentModal = dynamic(() => import('@/components/PaymentModal'), { ssr: false });
 import Link from 'next/link';
 import { 
   GraduationCap, MessageCircle, BookOpen, BookMarked, 

@@ -3,7 +3,7 @@
 import { createContext, useContext, useEffect, useState, ReactNode } from 'react';
 import { User, onAuthStateChanged, signInWithPopup, signOut } from 'firebase/auth';
 import { auth, googleProvider, db } from '@/lib/firebase';
-import { doc, getDoc, setDoc } from 'firebase/firestore';
+import { doc, getDoc, setDoc, updateDoc, arrayUnion } from 'firebase/firestore';
 import { dbService } from '@/lib/database';
 
 interface UserData {
@@ -22,6 +22,7 @@ interface UserData {
   consecutivePasses: number;
   lastActivityDate: string;
   vocabularyLearned: number;
+  viewedVocabulary: string[];
   preferredLanguage: string;
   createdAt: Date;
 }
@@ -41,6 +42,7 @@ interface AuthContextType {
   incrementConsecutivePasses: () => Promise<void>;
   resetConsecutivePasses: () => Promise<void>;
   recordLearningActivity: () => Promise<void>;
+  addViewedVocabulary: (wordId: string) => Promise<void>;
   updateUserProfile: (data: { displayName?: string; phone?: string }) => Promise<void>;
 }
 
@@ -81,6 +83,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
             consecutivePasses: 0,
             lastActivityDate: new Date().toISOString().split('T')[0],
             vocabularyLearned: 0,
+            viewedVocabulary: [],
             preferredLanguage: 'en',
             createdAt: new Date(),
           };
@@ -172,6 +175,19 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     });
   };
 
+  const addViewedVocabulary = async (wordId: string) => {
+    if (!user) return;
+    const userRef = doc(db, 'users', user.uid);
+    await updateDoc(userRef, {
+      viewedVocabulary: arrayUnion(wordId),
+    });
+    setUserData(prev => prev ? {
+      ...prev,
+      viewedVocabulary: [...(prev.viewedVocabulary || []), wordId],
+      vocabularyLearned: (prev.vocabularyLearned || 0) + 1,
+    } : prev);
+  };
+
   const updateUserProfile = async (data: { displayName?: string; phone?: string }) => {
     if (!user) return;
     const updates: Partial<UserData> = {};
@@ -201,6 +217,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         incrementConsecutivePasses,
         resetConsecutivePasses,
         recordLearningActivity,
+        addViewedVocabulary,
         updateUserProfile,
       }}
     >

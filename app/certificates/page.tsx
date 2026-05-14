@@ -1,11 +1,14 @@
 'use client';
 
 import { useState, useRef, useEffect } from 'react';
+import dynamic from 'next/dynamic';
 import Link from 'next/link';
 import Navbar from '@/components/Navbar';
 import { useAuth } from '@/context/AuthContext';
-import Certificate, { CertificateProps } from '@/components/Certificate';
 import { dbService, Level } from '@/lib/database';
+
+const Certificate = dynamic(() => import('@/components/Certificate'), { ssr: false });
+import type { CertificateProps } from '@/components/Certificate';
 import { ArrowLeft, Award, CheckCircle, FileText, Download, Eye, X } from 'lucide-react';
 import { generateCertificateId, formatDate, downloadCertificateAsPDF } from '@/lib/certificate';
 

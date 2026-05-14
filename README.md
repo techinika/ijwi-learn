@@ -73,10 +73,7 @@ app/                    # App Router pages
 ├── chat/              # Teacher chat
 ├── leaderboard/       # User rankings
 ├── learn/             # Learning levels
-│   ├── beginner/      # Vocabulary flashcards
-│   ├── practice/      # AI conversation practice
-│   ├── intermediate/  # Grammar lessons
-│   └── fluent/        # Story reading
+│   ├── [slug]/        # Dynamic level pages (vocabulary, flashcards)
 ├── tests/             # Level tests
 ├── videos/            # Video lessons
 ├── payment/           # Payment success/failure

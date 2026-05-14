@@ -20,7 +20,7 @@ interface TopicItem {
 export default function LevelPage({ params }: { params: Promise<{ slug: string }> }) {
   const { slug } = use(params);
   const router = useRouter();
-  const { userData, user, recordLearningActivity } = useAuth();
+  const { userData, user, recordLearningActivity, addViewedVocabulary } = useAuth();
   const preferredLang = userData?.preferredLanguage || 'en';
   const [level, setLevel] = useState<Level | null>(null);
   const [topics, setTopics] = useState<TopicItem[]>([]);
@@ -28,6 +28,7 @@ export default function LevelPage({ params }: { params: Promise<{ slug: string }
   const [vocabulary, setVocabulary] = useState<VocabType[]>([]);
   const [currentIndex, setCurrentIndex] = useState(0);
   const [loading, setLoading] = useState(true);
+  const [redirecting, setRedirecting] = useState(false);
   const [fetchingVocab, setFetchingVocab] = useState(false);
   const [viewedWords, setViewedWords] = useState<Set<string>>(new Set());
 
@@ -43,16 +44,20 @@ export default function LevelPage({ params }: { params: Promise<{ slug: string }
   }, [activeTopic]);
 
   useEffect(() => {
-    if (!user || !vocabulary[currentIndex]?.id || viewedWords.has(vocabulary[currentIndex].id)) return;
+    if (!user || !vocabulary[currentIndex]?.id) return;
     const wordId = vocabulary[currentIndex].id;
+    const alreadyViewed = viewedWords.has(wordId) ||
+      (userData?.viewedVocabulary || []).includes(wordId);
+    if (alreadyViewed) return;
     setViewedWords(prev => {
       const newSet = new Set(prev);
       newSet.add(wordId);
       return newSet;
     });
+    addViewedVocabulary(wordId);
     dbService.awardPoints(user.uid, 1, 'Read vocabulary', 'vocabulary');
     recordLearningActivity();
-  }, [currentIndex, user, vocabulary]);
+  }, [currentIndex, user, vocabulary, userData?.viewedVocabulary]);
 
   const loadData = async () => {
     setLoading(true);
@@ -64,9 +69,21 @@ export default function LevelPage({ params }: { params: Promise<{ slug: string }
 
       const currentLevel = dbLevels.find(l => l.slug === slug);
       if (!currentLevel) {
+        setRedirecting(true);
         router.push('/learn');
         return;
       }
+
+      const purchased = (userData?.purchasedLevels || []) as (string | number)[];
+      const hasAccess = purchased.includes(currentLevel.order) ||
+                        purchased.includes(currentLevel.id) ||
+                        purchased.includes(String(currentLevel.id));
+      if (!hasAccess) {
+        setRedirecting(true);
+        router.push('/learn');
+        return;
+      }
+
       setLevel(currentLevel);
 
       const levelCategories = dbCategories.filter(c =>
@@ -153,7 +170,7 @@ export default function LevelPage({ params }: { params: Promise<{ slug: string }
             </div>
           )}
 
-          {loading ? (
+          {loading || redirecting ? (
             <Loading fullScreen />
           ) : (
             <>

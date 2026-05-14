@@ -128,8 +128,8 @@ export default function AdminChatPage() {
                   {messages.length === 0 ? (
                     <p className="text-center text-gray-400">No messages yet.</p>
                   ) : (
-                    messages.map((msg, i) => (
-                      <div key={i} className={`flex ${msg.role === 'teacher' ? 'justify-end' : 'justify-start'}`}>
+                    messages.map((msg) => (
+                      <div key={msg.id} className={`flex ${msg.role === 'teacher' ? 'justify-end' : 'justify-start'}`}>
                         <div className={`max-w-md rounded-2xl p-4 ${
                           msg.role === 'teacher'
                             ? 'bg-primary-600 text-white rounded-br-md'

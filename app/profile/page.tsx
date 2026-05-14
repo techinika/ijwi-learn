@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useEffect } from "react";
+import dynamic from "next/dynamic";
 import { useAuth } from "@/context/AuthContext";
 import {
   User,
@@ -13,8 +14,9 @@ import {
   CheckCircle,
   X,
 } from "lucide-react";
-import PaymentModal from "@/components/PaymentModal";
 import { db } from "@/lib/firebase";
+
+const PaymentModal = dynamic(() => import("@/components/PaymentModal"), { ssr: false });
 import { Invoice, Subscription } from "@/lib/database";
 import { formatCurrency } from "@/lib/payment";
 

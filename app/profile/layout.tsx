@@ -1,36 +1,15 @@
-'use client';
+import type { Metadata } from 'next';
+import ProfileShell from './ProfileShell';
 
-import { useAuth } from '@/context/AuthContext';
-import { useRouter } from 'next/navigation';
-import { useEffect } from 'react';
-import Navbar from '@/components/Navbar';
+export const metadata: Metadata = {
+  title: 'Profile',
+  description: 'Manage your IJWI-LEARN profile, view subscriptions and invoices.',
+  openGraph: {
+    title: 'Profile | IJWI-LEARN',
+    description: 'Manage your IJWI-LEARN learning profile.',
+  },
+};
 
-export default function ProfileLayout({ children }: { children: React.ReactNode }) {
-  const { user, loading } = useAuth();
-  const router = useRouter();
-
-  useEffect(() => {
-    if (!loading && !user) {
-      router.push('/');
-    }
-  }, [user, loading, router]);
-
-  if (loading) {
-    return (
-      <div className="min-h-screen flex items-center justify-center bg-gray-50">
-        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary-600"></div>
-      </div>
-    );
-  }
-
-  if (!user) {
-    return null;
-  }
-
-  return (
-    <>
-      <Navbar />
-      <main className="pt-20">{children}</main>
-    </>
-  );
+export default function Layout({ children }: { children: React.ReactNode }) {
+  return <ProfileShell>{children}</ProfileShell>;
 }
