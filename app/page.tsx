@@ -11,7 +11,8 @@ import Link from 'next/link';
 import { 
   GraduationCap, MessageCircle, BookOpen, BookMarked, 
   Play, FileText, Award, MessageSquare, CheckCircle,
-  ArrowRight, Lock, Unlock, ChevronDown, ChevronUp
+  ArrowRight, Lock, Unlock, ChevronDown, ChevronUp,
+  AlertTriangle
 } from 'lucide-react';
 
 const colorMap: Record<string, string> = {
@@ -122,12 +123,35 @@ export default function Home() {
   }
 
   const purchasedLevels = userData?.purchasedLevels || [];
+  const completedLevels = userData?.completedLevels || [];
+  const incompleteLevels = levels.filter(l =>
+    purchasedLevels.includes(l.order) && !completedLevels.includes(l.order)
+  );
 
   return (
     <div className="min-h-screen bg-gradient-to-b from-gray-50 to-white">
       <Navbar />
       <main className="pt-28 pb-12 px-4">
         <div className="max-w-5xl mx-auto">
+          {incompleteLevels.length > 0 && (
+            <div className="bg-amber-50 border border-amber-200 rounded-2xl p-5 mb-8 flex items-start gap-4">
+              <AlertTriangle size={24} className="text-amber-600 shrink-0 mt-0.5" />
+              <div>
+                <h3 className="font-semibold text-amber-800 mb-1">Level{incompleteLevels.length > 1 ? 's' : ''} Not Yet Completed</h3>
+                <p className="text-amber-700 text-sm">
+                  You have unlocked {incompleteLevels.map(l => l.title).join(', ')} but haven&apos;t passed the test yet.
+                  Take the test to earn your certificate and track your progress.
+                </p>
+                <Link
+                  href="/tests"
+                  className="inline-flex items-center gap-1 mt-3 text-sm font-medium text-amber-800 hover:text-amber-900 underline"
+                >
+                  Go to Tests <ArrowRight size={14} />
+                </Link>
+              </div>
+            </div>
+          )}
+
           <div className="bg-gradient-to-r from-primary-600 to-primary-700 rounded-3xl p-8 text-white mb-10 shadow-xl">
             <div className="flex flex-col md:flex-row items-center justify-between gap-6">
               <div>
@@ -157,6 +181,7 @@ export default function Home() {
           <div className="grid sm:grid-cols-2 gap-6">
             {levels.map((level) => {
               const isUnlocked = isLevelAccessible(level.order);
+              const isCompleted = isUnlocked && completedLevels.includes(level.order);
               
               return (
                 <div key={level.id} className={`bg-white p-6 rounded-2xl shadow-sm border-2 transition-all ${isUnlocked ? 'border-gray-200 hover:border-primary-300 hover:shadow-md' : 'border-gray-100 opacity-90'}`}>
@@ -167,10 +192,15 @@ export default function Home() {
                     <div className="flex-1">
                       <div className="flex items-center justify-between mb-1">
                         <h3 className="text-lg font-bold text-gray-900">{level.title}</h3>
-                        {isUnlocked ? (
+                        {isCompleted ? (
                           <span className="flex items-center gap-1.5 bg-emerald-100 text-emerald-700 px-3 py-1 rounded-full text-sm font-medium">
+                            <CheckCircle size={14} />
+                            Completed
+                          </span>
+                        ) : isUnlocked ? (
+                          <span className="flex items-center gap-1.5 bg-amber-100 text-amber-700 px-3 py-1 rounded-full text-sm font-medium">
                             <Unlock size={14} />
-                            Unlocked
+                            Uncompleted
                           </span>
                         ) : (
                           <span className="flex items-center gap-1.5 bg-gray-100 text-gray-500 px-3 py-1 rounded-full text-sm font-medium">

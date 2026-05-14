@@ -14,6 +14,7 @@ interface UserData {
   phone?: string;
   currentLevel: number;
   purchasedLevels: number[];
+  completedLevels: number[];
   isAdmin: boolean;
   isTeacher: boolean;
   totalPoints: number;
@@ -37,6 +38,7 @@ interface AuthContextType {
   logout: () => Promise<void>;
   updateUserData: (data: Partial<UserData>) => Promise<void>;
   purchaseLevel: (level: number) => Promise<void>;
+  completeLevel: (order: number) => Promise<void>;
   addPoints: (points: number) => Promise<void>;
   incrementTestsCompleted: () => Promise<void>;
   incrementConsecutivePasses: () => Promise<void>;
@@ -75,6 +77,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
             photoURL: currentUser.photoURL || '',
             currentLevel: 1,
             purchasedLevels: [1],
+            completedLevels: [],
             isAdmin: false,
             isTeacher: false,
             totalPoints: 0,
@@ -125,12 +128,19 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   const purchaseLevel = async (level: number) => {
     if (!user || !userData) return;
-    const newPurchasedLevels = [...new Set([...userData.purchasedLevels, level])];
+    const allUpToLevel = Array.from({ length: level }, (_, i) => i + 1);
+    const newPurchasedLevels = [...new Set([...userData.purchasedLevels, ...allUpToLevel])];
     const isNewLevel = !userData.purchasedLevels.includes(level);
     await updateUserData({ purchasedLevels: newPurchasedLevels });
     if (isNewLevel) {
       await dbService.awardPoints(user.uid, 50, 'Level upgrade', 'merit');
     }
+  };
+
+  const completeLevel = async (order: number) => {
+    if (!user || !userData) return;
+    const newCompletedLevels = [...new Set([...(userData.completedLevels || []), order])];
+    await updateUserData({ completedLevels: newCompletedLevels });
   };
 
   const addPoints = async (points: number) => {
@@ -212,6 +222,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         logout,
         updateUserData,
         purchaseLevel,
+        completeLevel,
         addPoints,
         incrementTestsCompleted,
         incrementConsecutivePasses,

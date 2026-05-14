@@ -11,7 +11,7 @@ import { Loading, FetchLoading } from '@/app/AppLoading';
 const TESTS_PER_PAGE = 6;
 
 export default function TestsPage() {
-  const { user, userData, incrementTestsCompleted, incrementConsecutivePasses, resetConsecutivePasses } = useAuth();
+  const { user, userData, incrementTestsCompleted, incrementConsecutivePasses, resetConsecutivePasses, completeLevel } = useAuth();
   const [tests, setTests] = useState<Test[]>([]);
   const [levels, setLevels] = useState<Level[]>([]);
   const [loading, setLoading] = useState(true);
@@ -97,6 +97,7 @@ export default function TestsPage() {
           const level = levels.find(l => l.id === selectedLevel);
           const score = calculateScore();
           if (level) {
+            await completeLevel(level.order);
             await dbService.createCertificate({
               userId: user.uid,
               levelId: parseInt(selectedLevel),
