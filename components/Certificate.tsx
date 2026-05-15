@@ -26,59 +26,66 @@ const Certificate = forwardRef<HTMLDivElement, CertificateProps>(
     return (
       <div
         ref={ref}
-        className="bg-white p-8 rounded-xl border-2 border-amber-200"
-        style={{ width: '800px', height: '600px', position: 'relative' }}
+        style={{
+          width: '800px',
+          height: '600px',
+          position: 'relative',
+          backgroundColor: '#ffffff',
+          borderRadius: '12px',
+          border: '2px solid #f59e0b',
+          overflow: 'hidden',
+        }}
       >
-        <div className="absolute top-0 left-0 w-full h-2 bg-amber-500"></div>
+        <div style={{ position: 'absolute', top: 0, left: 0, width: '100%', height: '8px', backgroundColor: '#f59e0b' }}></div>
 
-        <div className="text-center h-full flex flex-col">
-          <div className="mb-2">
-            <div className="inline-flex items-center justify-center w-14 h-14 bg-amber-100 rounded-full">
-              <span className="text-amber-600 text-2xl font-bold">I</span>
+        <div style={{ textAlign: 'center', height: '100%', display: 'flex', flexDirection: 'column', padding: '32px' }}>
+          <div style={{ marginBottom: '8px' }}>
+            <div style={{ display: 'inline-flex', alignItems: 'center', justifyContent: 'center', width: '56px', height: '56px', backgroundColor: '#fef3c7', borderRadius: '50%' }}>
+              <span style={{ color: '#d97706', fontSize: '24px', fontWeight: 700 }}>I</span>
             </div>
           </div>
 
-          <h1 className="text-3xl font-bold text-gray-900 mb-1">
+          <h1 style={{ fontSize: '30px', fontWeight: 700, color: '#111827', marginBottom: '4px' }}>
             Certificate of Completion
           </h1>
-          <p className="text-lg text-gray-600 mb-1">IJWI-LEARN</p>
-          <p className="text-sm text-gray-400 mb-6">
+          <p style={{ fontSize: '18px', color: '#4b5563', marginBottom: '4px' }}>IJWI-LEARN</p>
+          <p style={{ fontSize: '14px', color: '#9ca3af', marginBottom: '24px' }}>
             Learning Kinyarwanda with IJWI-LEARN
           </p>
 
-          <div className="flex-1 flex flex-col justify-center">
-            <p className="text-gray-500 mb-2">This is to certify that</p>
-            <h2 className="text-4xl font-bold text-blue-600 mb-5">{userName}</h2>
-            <p className="text-gray-600 mb-2">has successfully completed the</p>
-            <h3 className="text-2xl font-semibold text-gray-900 mb-3">{level} Level</h3>
+          <div style={{ flex: 1, display: 'flex', flexDirection: 'column', justifyContent: 'center' }}>
+            <p style={{ color: '#6b7280', marginBottom: '8px' }}>This is to certify that</p>
+            <h2 style={{ fontSize: '36px', fontWeight: 700, color: '#2563eb', marginBottom: '20px' }}>{userName}</h2>
+            <p style={{ color: '#4b5563', marginBottom: '8px' }}>has successfully completed the</p>
+            <h3 style={{ fontSize: '24px', fontWeight: 600, color: '#111827', marginBottom: '12px' }}>{level} Level</h3>
 
-            <div className="inline-flex items-center gap-2 bg-emerald-100 text-emerald-700 px-4 py-1.5 rounded-full mx-auto text-sm font-medium">
-              <span>✓</span>
+            <div style={{ display: 'inline-flex', alignItems: 'center', gap: '8px', backgroundColor: '#d1fae5', color: '#047857', padding: '6px 16px', borderRadius: '9999px', margin: '0 auto', fontSize: '14px', fontWeight: 500 }}>
+              <span>&#10003;</span>
               <span>Score: {score}%</span>
             </div>
           </div>
 
-          <div className="flex justify-between items-end mt-6">
-            <div className="text-left">
-              <div className="text-xs text-gray-500">Date</div>
-              <div className="font-medium text-gray-900 text-sm">{date}</div>
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-end', marginTop: '24px' }}>
+            <div style={{ textAlign: 'left' }}>
+              <div style={{ fontSize: '12px', color: '#6b7280' }}>Date</div>
+              <div style={{ fontWeight: 500, color: '#111827', fontSize: '14px' }}>{date}</div>
             </div>
 
-            <div className="text-center flex flex-col items-center gap-1">
+            <div style={{ textAlign: 'center', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '4px' }}>
               {qrDataUrl && (
-                <img src={qrDataUrl} alt="QR Code" className="w-12 h-12" />
+                <img src={qrDataUrl} alt="QR Code" style={{ width: '48px', height: '48px' }} />
               )}
-              <div className="text-[10px] text-gray-400">Scan to verify</div>
+              <div style={{ fontSize: '10px', color: '#9ca3af' }}>Scan to verify</div>
             </div>
 
-            <div className="text-right">
-              <div className="text-xs text-gray-500">Certificate ID</div>
-              <div className="font-medium text-gray-900 text-xs">{certificateId}</div>
+            <div style={{ textAlign: 'right' }}>
+              <div style={{ fontSize: '12px', color: '#6b7280' }}>Certificate ID</div>
+              <div style={{ fontWeight: 500, color: '#111827', fontSize: '12px' }}>{certificateId}</div>
             </div>
           </div>
         </div>
 
-        <div className="absolute bottom-0 left-0 w-full h-2 bg-amber-500"></div>
+        <div style={{ position: 'absolute', bottom: 0, left: 0, width: '100%', height: '8px', backgroundColor: '#f59e0b' }}></div>
       </div>
     );
   }
