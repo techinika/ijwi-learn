@@ -59,7 +59,7 @@ export default function Navbar() {
 
   return (
     <nav className="fixed top-0 left-0 right-0 z-50 bg-white/95 backdrop-blur-sm shadow-lg border-b border-gray-100">
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 py-3">
+      <div className="container mx-auto px-4 sm:px-6 py-3">
         <div className="flex items-center justify-between">
           <Link href="/" className="flex items-center gap-3 group">
             <div className="w-10 h-10 bg-gradient-to-br from-primary-500 to-primary-700 rounded-xl flex items-center justify-center text-white shadow-md group-hover:scale-105 transition-transform">
@@ -163,27 +163,55 @@ export default function Navbar() {
                           </span>
                         </div>
                       </div>
-                      
+
                       <div className="border-b border-gray-100 md:hidden">
-                        <MobileNavLink href="/" icon={<GraduationCap size={18} />} active={isActive("/")}>
+                        <MobileNavLink
+                          href="/"
+                          icon={<GraduationCap size={18} />}
+                          active={isActive("/")}
+                        >
                           Levels
                         </MobileNavLink>
-                        <MobileNavLink href="/videos" icon={<Video size={18} />} active={isActive("/videos")}>
+                        <MobileNavLink
+                          href="/videos"
+                          icon={<Video size={18} />}
+                          active={isActive("/videos")}
+                        >
                           Videos
                         </MobileNavLink>
-                        <MobileNavLink href="/tests" icon={<FileText size={18} />} active={isActive("/tests")}>
+                        <MobileNavLink
+                          href="/tests"
+                          icon={<FileText size={18} />}
+                          active={isActive("/tests")}
+                        >
                           Tests
                         </MobileNavLink>
-                        <MobileNavLink href="/dialogues" icon={<MessageSquare size={18} />} active={isActive("/dialogues")}>
+                        <MobileNavLink
+                          href="/dialogues"
+                          icon={<MessageSquare size={18} />}
+                          active={isActive("/dialogues")}
+                        >
                           Dialogues
                         </MobileNavLink>
-                        <MobileNavLink href="/certificates" icon={<Award size={18} />} active={isActive("/certificates")}>
+                        <MobileNavLink
+                          href="/certificates"
+                          icon={<Award size={18} />}
+                          active={isActive("/certificates")}
+                        >
                           Certificates
                         </MobileNavLink>
-                        <MobileNavLink href="/leaderboard" icon={<Trophy size={18} />} active={isActive("/leaderboard")}>
+                        <MobileNavLink
+                          href="/leaderboard"
+                          icon={<Trophy size={18} />}
+                          active={isActive("/leaderboard")}
+                        >
                           Leaderboard
                         </MobileNavLink>
-                        <MobileNavLink href="/chat" icon={<MessageCircle size={18} />} active={isActive("/chat")}>
+                        <MobileNavLink
+                          href="/chat"
+                          icon={<MessageCircle size={18} />}
+                          active={isActive("/chat")}
+                        >
                           Chat
                         </MobileNavLink>
                       </div>
@@ -236,7 +264,8 @@ export default function Navbar() {
                                 >
                                   <span className="text-base">{lang.flag}</span>
                                   <span>{lang.name}</span>
-                                  {userData?.preferredLanguage === lang.code && (
+                                  {userData?.preferredLanguage ===
+                                    lang.code && (
                                     <span className="ml-auto text-primary-600 text-xs">
                                       Active
                                     </span>
@@ -268,8 +297,7 @@ export default function Navbar() {
             )}
           </div>
         </div>
-
-        </div>
+      </div>
     </nav>
   );
 }
