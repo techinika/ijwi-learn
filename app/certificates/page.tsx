@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useRef, useEffect } from 'react';
+import { useState, useEffect } from 'react';
 import dynamic from 'next/dynamic';
 import Link from 'next/link';
 import Navbar from '@/components/Navbar';
@@ -23,7 +23,6 @@ interface UserCertificate {
 
 export default function CertificatesPage() {
   const { user, userData } = useAuth();
-  const certificateRef = useRef<HTMLDivElement>(null);
   const [viewingCertificate, setViewingCertificate] = useState<UserCertificate | null>(null);
   const [showPreview, setShowPreview] = useState(false);
   const [certificates, setCertificates] = useState<UserCertificate[]>([]);
@@ -71,7 +70,7 @@ export default function CertificatesPage() {
   };
 
   const handleDownload = async (cert: UserCertificate) => {
-    if (!user || !certificateRef.current) return;
+    if (!user) return;
 
     const certificateData: CertificateProps = {
       userName: user.displayName || 'Learner',
@@ -81,12 +80,30 @@ export default function CertificatesPage() {
       certificateId: cert.certificateId || generateCertificateId(user.uid, cert.levelName),
     };
 
-    const element = certificateRef.current;
-    element.style.display = 'flex';
-    
-    await downloadCertificateAsPDF(element, certificateData);
-    
-    element.style.display = 'none';
+    const div = document.createElement('div');
+    div.style.position = 'fixed';
+    div.style.top = '-9999px';
+    div.style.left = '-9999px';
+    div.style.zIndex = '-1';
+    document.body.appendChild(div);
+
+    const root = document.createElement('div');
+    div.appendChild(root);
+
+    const { createRoot } = await import('react-dom/client');
+    const CertificateComponent = (await import('@/components/Certificate')).default;
+    const rootInstance = createRoot(root);
+    rootInstance.render(<CertificateComponent {...certificateData} />);
+
+    await new Promise(r => setTimeout(r, 300));
+
+    const capturedDiv = div.querySelector('div') as HTMLElement;
+    if (capturedDiv) {
+      await downloadCertificateAsPDF(capturedDiv, certificateData);
+    }
+
+    rootInstance.unmount();
+    document.body.removeChild(div);
   };
 
   const getLevelInfo = (levelId: number) => {
@@ -254,7 +271,6 @@ export default function CertificatesPage() {
             </div>
             <div className="p-6 overflow-auto max-h-[80vh] flex justify-center">
               <Certificate
-                ref={certificateRef}
                 userName={user.displayName || 'Learner'}
                 level={viewingCertificate.levelName}
                 score={viewingCertificate.score}
@@ -284,16 +300,6 @@ export default function CertificatesPage() {
         </div>
       )}
 
-      <div className="hidden">
-        <Certificate
-          ref={certificateRef}
-          userName="Test User"
-          level="Beginner"
-          score={85}
-          date="January 15, 2024"
-          certificateId="TEST-123"
-        />
-      </div>
     </div>
   );
 }

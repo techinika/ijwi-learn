@@ -61,21 +61,29 @@ export default function Home() {
   const [paymentLevel, setPaymentLevel] = useState<LevelData | null>(null);
   const [levelsLoading, setLevelsLoading] = useState(true);
   const [subscriptions, setSubscriptions] = useState<SubscriptionData[]>([]);
+  const [vocabCount, setVocabCount] = useState(0);
+  const [storiesCount, setStoriesCount] = useState(0);
 
   useEffect(() => {
-    loadLevels();
+    loadData();
     if (user?.uid) {
       loadSubscriptions();
     }
   }, [user?.uid]);
 
-  const loadLevels = async () => {
+  const loadData = async () => {
     setLevelsLoading(true);
     try {
-      const dbLevels = await dbService.getLevels();
+      const [dbLevels, dbVocab, dbStories] = await Promise.all([
+        dbService.getLevels(),
+        dbService.getVocabulary(),
+        dbService.getStories(),
+      ]);
       if (dbLevels.length > 0) {
         setLevels(dbLevels as any);
       }
+      setVocabCount(dbVocab.length);
+      setStoriesCount(dbStories.length);
     } catch (error) {
       console.log('Using default levels');
     }
@@ -119,7 +127,7 @@ export default function Home() {
   }
 
   if (!user || !userData) {
-    return <LandingPage showFeatures={showFeatures} setShowFeatures={setShowFeatures} signInWithGoogle={signInWithGoogle} levels={levels} />;
+    return <LandingPage showFeatures={showFeatures} setShowFeatures={setShowFeatures} signInWithGoogle={signInWithGoogle} levels={levels} vocabCount={vocabCount} storiesCount={storiesCount} />;
   }
 
   const purchasedLevels = userData?.purchasedLevels || [];
@@ -292,11 +300,13 @@ export default function Home() {
   );
 }
 
-function LandingPage({ showFeatures, setShowFeatures, signInWithGoogle, levels }: { 
+function LandingPage({ showFeatures, setShowFeatures, signInWithGoogle, levels, vocabCount, storiesCount }: { 
   showFeatures: boolean; 
   setShowFeatures: (v: boolean) => void; 
   signInWithGoogle: () => void;
   levels: LevelData[];
+  vocabCount: number;
+  storiesCount: number;
 }) {
   return (
     <div className="min-h-screen bg-gray-50">
@@ -368,15 +378,15 @@ function LandingPage({ showFeatures, setShowFeatures, signInWithGoogle, levels }
 
             <div className="mt-16 flex justify-center gap-12">
               <div className="text-center">
-                <div className="text-3xl font-bold text-gray-900">4</div>
+                <div className="text-3xl font-bold text-gray-900">{levels.length}</div>
                 <div className="text-sm text-gray-500">Proficiency Levels</div>
               </div>
               <div className="text-center">
-                <div className="text-3xl font-bold text-gray-900">500+</div>
+                <div className="text-3xl font-bold text-gray-900">{vocabCount}+</div>
                 <div className="text-sm text-gray-500">Vocabulary Words</div>
               </div>
               <div className="text-center">
-                <div className="text-3xl font-bold text-gray-900">100+</div>
+                <div className="text-3xl font-bold text-gray-900">{storiesCount}+</div>
                 <div className="text-sm text-gray-500">Stories</div>
               </div>
             </div>
@@ -392,7 +402,7 @@ function LandingPage({ showFeatures, setShowFeatures, signInWithGoogle, levels }
               <p className="text-lg text-gray-600 text-center mb-12 max-w-2xl mx-auto">
                 A complete learning platform designed to take you from beginner to fluent
               </p>
-              <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-6">
+            <div className="grid sm:grid-cols-2 gap-6">
                 {[
                   { icon: <MessageCircle size={28} />, title: 'AI Practice', desc: 'Practice conversations with intelligent AI that adapts to your level', color: 'bg-primary-100 text-primary-600' },
                   { icon: <Play size={28} />, title: 'Video Lessons', desc: 'Learn with engaging video content from native speakers', color: 'bg-red-100 text-red-600' },
