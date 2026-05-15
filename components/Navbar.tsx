@@ -11,12 +11,10 @@ import {
   MessageCircle,
   LogOut,
   User,
-  Menu,
-  X,
   Trophy,
   Globe,
 } from "lucide-react";
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { dbService, Language } from "@/lib/database";
 import GlobalSearch from "./GlobalSearch";
 
@@ -27,6 +25,18 @@ export default function Navbar() {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [languages, setLanguages] = useState<Language[]>([]);
   const [showLangMenu, setShowLangMenu] = useState(false);
+  const menuRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      if (menuRef.current && !menuRef.current.contains(event.target as Node)) {
+        setMobileMenuOpen(false);
+        setShowLangMenu(false);
+      }
+    };
+    document.addEventListener("mousedown", handleClickOutside);
+    return () => document.removeEventListener("mousedown", handleClickOutside);
+  }, []);
 
   useEffect(() => {
     loadLanguages();
@@ -97,7 +107,7 @@ export default function Navbar() {
             </div>
           )}
 
-          <div className="flex items-center gap-3">
+          <div className="flex items-center gap-2 md:gap-3">
             {user ? (
               <>
                 <GlobalSearch />
@@ -110,13 +120,16 @@ export default function Navbar() {
                   <span>Chat</span>
                 </Link>
 
-                <div className="relative group">
-                  <button className="flex items-center gap-2 p-1 rounded-full hover:bg-gray-100 transition">
+                <div className="relative" ref={menuRef}>
+                  <button
+                    onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
+                    className="flex items-center gap-2 p-1 rounded-full hover:bg-gray-100 transition"
+                  >
                     {user.photoURL ? (
                       <img
                         src={user.photoURL}
                         alt=""
-                        className="w-9 h-9 rounded-full ring-2 ring-primary-200"
+                        className="w-9 h-9 rounded-full ring-2 ring-primary-200 object-cover"
                       />
                     ) : (
                       <div className="w-9 h-9 bg-gradient-to-br from-primary-500 to-primary-700 rounded-full flex items-center justify-center text-white shadow-md">
@@ -124,97 +137,115 @@ export default function Navbar() {
                       </div>
                     )}
                   </button>
-                  <div className="absolute right-0 top-full mt-3 w-56 bg-white rounded-2xl shadow-xl border border-gray-100 opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all z-50">
-                    <div className="p-4 border-b border-gray-100">
-                      <div className="font-semibold text-gray-900 truncate">
-                        {user.displayName}
+                  {mobileMenuOpen && (
+                    <div className="absolute right-0 top-full mt-3 w-56 bg-white rounded-2xl shadow-xl border border-gray-100 z-50">
+                      <div className="p-4 border-b border-gray-100">
+                        <div className="font-semibold text-gray-900 truncate">
+                          {user.displayName}
+                        </div>
+                        <div className="text-sm text-gray-500 truncate">
+                          {user.email}
+                        </div>
+                        <div className="mt-2 flex gap-3 text-xs">
+                          <span className="bg-primary-100 text-primary-700 px-2 py-1 rounded-full">
+                            {userData?.totalPoints || 0} pts
+                          </span>
+                          <span className="bg-emerald-100 text-emerald-700 px-2 py-1 rounded-full">
+                            {userData?.consecutivePasses || 0} streak
+                          </span>
+                        </div>
                       </div>
-                      <div className="text-sm text-gray-500 truncate">
-                        {user.email}
+                      
+                      <div className="border-b border-gray-100 md:hidden">
+                        <MobileNavLink href="/" icon={<GraduationCap size={18} />} active={isActive("/")}>
+                          Levels
+                        </MobileNavLink>
+                        <MobileNavLink href="/videos" icon={<Video size={18} />} active={isActive("/videos")}>
+                          Videos
+                        </MobileNavLink>
+                        <MobileNavLink href="/tests" icon={<FileText size={18} />} active={isActive("/tests")}>
+                          Tests
+                        </MobileNavLink>
+                        <MobileNavLink href="/certificates" icon={<Award size={18} />} active={isActive("/certificates")}>
+                          Certificates
+                        </MobileNavLink>
+                        <MobileNavLink href="/leaderboard" icon={<Trophy size={18} />} active={isActive("/leaderboard")}>
+                          Leaderboard
+                        </MobileNavLink>
+                        <MobileNavLink href="/chat" icon={<MessageCircle size={18} />} active={isActive("/chat")}>
+                          Chat
+                        </MobileNavLink>
                       </div>
-                      <div className="mt-2 flex gap-3 text-xs">
-                        <span className="bg-primary-100 text-primary-700 px-2 py-1 rounded-full">
-                          {userData?.totalPoints || 0} pts
-                        </span>
-                        <span className="bg-emerald-100 text-emerald-700 px-2 py-1 rounded-full">
-                          {userData?.consecutivePasses || 0} streak
-                        </span>
-                      </div>
-                    </div>
-                    <div className="border-t border-gray-100">
-                      {(userData?.isAdmin || userData?.isTeacher) && (
+
+                      <div className="border-t border-gray-100">
+                        {(userData?.isAdmin || userData?.isTeacher) && (
+                          <Link
+                            href="/admin"
+                            className="w-full p-3 text-left text-gray-700 hover:bg-gray-50 flex items-center gap-2 text-sm font-medium"
+                          >
+                            <User size={16} />
+                            Admin Dashboard
+                          </Link>
+                        )}
                         <Link
-                          href="/admin"
+                          href="/profile"
                           className="w-full p-3 text-left text-gray-700 hover:bg-gray-50 flex items-center gap-2 text-sm font-medium"
                         >
                           <User size={16} />
-                          Admin Dashboard
+                          My Profile
                         </Link>
-                      )}
-                      <Link
-                        href="/profile"
-                        className="w-full p-3 text-left text-gray-700 hover:bg-gray-50 flex items-center gap-2 text-sm font-medium"
-                      >
-                        <User size={16} />
-                        My Profile
-                      </Link>
-                      <div className="relative">
-                        <button
-                          onClick={() => setShowLangMenu(!showLangMenu)}
-                          className="w-full p-3 text-left text-gray-700 hover:bg-gray-50 flex items-center gap-2 text-sm font-medium"
-                        >
-                          <Globe size={16} />
-                          <span>
-                            {currentLang
-                              ? `${currentLang.flag} ${currentLang.name}`
-                              : "Language"}
-                          </span>
-                        </button>
-                        {showLangMenu && (
-                          <div className="absolute bottom-full left-0 right-0 bg-white border border-gray-100 rounded-xl shadow-lg mb-1 overflow-hidden">
-                            {languages.map((lang) => (
-                              <button
-                                key={lang.code}
-                                onClick={() => {
-                                  updateUserData({
-                                    preferredLanguage: lang.code,
-                                  });
-                                  setShowLangMenu(false);
-                                }}
-                                className={`w-full p-3 text-left flex items-center gap-3 text-sm hover:bg-gray-50 transition-colors ${
-                                  userData?.preferredLanguage === lang.code
-                                    ? "bg-primary-50 text-primary-700 font-medium"
-                                    : "text-gray-700"
-                                }`}
-                              >
-                                <span className="text-base">{lang.flag}</span>
-                                <span>{lang.name}</span>
-                                {userData?.preferredLanguage === lang.code && (
-                                  <span className="ml-auto text-primary-600 text-xs">
-                                    Active
-                                  </span>
-                                )}
-                              </button>
-                            ))}
-                          </div>
-                        )}
+                        <div className="relative">
+                          <button
+                            onClick={() => setShowLangMenu(!showLangMenu)}
+                            className="w-full p-3 text-left text-gray-700 hover:bg-gray-50 flex items-center gap-2 text-sm font-medium"
+                          >
+                            <Globe size={16} />
+                            <span>
+                              {currentLang
+                                ? `${currentLang.flag} ${currentLang.name}`
+                                : "Language"}
+                            </span>
+                          </button>
+                          {showLangMenu && (
+                            <div className="absolute bottom-full left-0 right-0 bg-white border border-gray-100 rounded-xl shadow-lg mb-1 overflow-hidden">
+                              {languages.map((lang) => (
+                                <button
+                                  key={lang.code}
+                                  onClick={() => {
+                                    updateUserData({
+                                      preferredLanguage: lang.code,
+                                    });
+                                    setShowLangMenu(false);
+                                  }}
+                                  className={`w-full p-3 text-left flex items-center gap-3 text-sm hover:bg-gray-50 transition-colors ${
+                                    userData?.preferredLanguage === lang.code
+                                      ? "bg-primary-50 text-primary-700 font-medium"
+                                      : "text-gray-700"
+                                  }`}
+                                >
+                                  <span className="text-base">{lang.flag}</span>
+                                  <span>{lang.name}</span>
+                                  {userData?.preferredLanguage === lang.code && (
+                                    <span className="ml-auto text-primary-600 text-xs">
+                                      Active
+                                    </span>
+                                  )}
+                                </button>
+                              ))}
+                            </div>
+                          )}
+                        </div>
                       </div>
+                      <button
+                        onClick={() => logout()}
+                        className="w-full p-3 text-left text-red-600 hover:bg-red-50 flex items-center gap-2 text-sm font-medium border-t border-gray-100"
+                      >
+                        <LogOut size={16} />
+                        Sign Out
+                      </button>
                     </div>
-                    <button
-                      onClick={() => logout()}
-                      className="w-full p-3 text-left text-red-600 hover:bg-red-50 flex items-center gap-2 text-sm font-medium"
-                    >
-                      <LogOut size={16} />
-                      Sign Out
-                    </button>
-                  </div>
+                  )}
                 </div>
-                <button
-                  onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
-                  className="md:hidden p-2 hover:bg-gray-100 rounded-xl transition"
-                >
-                  {mobileMenuOpen ? <X size={24} /> : <Menu size={24} />}
-                </button>
               </>
             ) : (
               <button
@@ -227,60 +258,7 @@ export default function Navbar() {
           </div>
         </div>
 
-        {mobileMenuOpen && user && (
-          <div className="md:hidden py-4 border-t border-gray-100 divide-y divide-gray-100">
-            <div className="pb-3">
-              <MobileNavLink
-                href="/"
-                icon={<GraduationCap size={18} />}
-                active={isActive("/")}
-              >
-                Levels
-              </MobileNavLink>
-              <MobileNavLink
-                href="/videos"
-                icon={<Video size={18} />}
-                active={isActive("/videos")}
-              >
-                Videos
-              </MobileNavLink>
-              <MobileNavLink
-                href="/tests"
-                icon={<FileText size={18} />}
-                active={isActive("/tests")}
-              >
-                Tests
-              </MobileNavLink>
-              <MobileNavLink
-                href="/certificates"
-                icon={<Award size={18} />}
-                active={isActive("/certificates")}
-              >
-                Certificates
-              </MobileNavLink>
-              <MobileNavLink
-                href="/leaderboard"
-                icon={<Trophy size={18} />}
-                active={isActive("/leaderboard")}
-              >
-                Leaderboard
-              </MobileNavLink>
-              <MobileNavLink
-                href="/chat"
-                icon={<MessageCircle size={18} />}
-                active={isActive("/chat")}
-              >
-                Chat
-              </MobileNavLink>
-            </div>
-            <div className="pt-3 px-2">
-              <div className="md:hidden">
-                <GlobalSearch />
-              </div>
-            </div>
-          </div>
-        )}
-      </div>
+        </div>
     </nav>
   );
 }

@@ -87,7 +87,7 @@ export default function AdminDashboard() {
             <p className="text-primary-100 mt-1">Manage your Kinyarwanda learning platform</p>
           </div>
 
-          <div className="grid grid-cols-7 gap-4 mb-10">
+          <div className="grid grid-cols-2 sm:grid-cols-4 lg:grid-cols-7 gap-3 sm:gap-4 mb-8">
             {[
               { label: 'Vocabulary', value: stats.vocabulary, color: 'bg-emerald-100 text-emerald-600' },
               { label: 'Stories', value: stats.stories, color: 'bg-primary-100 text-primary-600' },
@@ -97,8 +97,8 @@ export default function AdminDashboard() {
               { label: 'Difficulties', value: stats.difficulties, color: 'bg-red-100 text-red-600' },
               { label: 'Languages', value: stats.languages, color: 'bg-indigo-100 text-indigo-600' },
             ].map((s) => (
-              <div key={s.label} className="bg-white rounded-xl p-4 text-center shadow-sm border border-gray-100">
-                <div className={`text-2xl font-bold ${s.color.split(' ')[1]}`}>{s.value}</div>
+              <div key={s.label} className="bg-white rounded-xl p-3 sm:p-4 text-center shadow-sm border border-gray-100">
+                <div className={`text-xl sm:text-2xl font-bold ${s.color.split(' ')[1]}`}>{s.value}</div>
                 <div className="text-xs text-gray-500 mt-1">{s.label}</div>
               </div>
             ))}

@@ -144,10 +144,10 @@ export default function VideoPage({ params }: { params: Promise<{ id: string }> 
   return (
     <div className="min-h-screen bg-gray-950">
       <Navbar />
-      <main className="pt-14 sm:pt-20">
+      <main className="pt-16 sm:pt-20">
         <div className="bg-black w-full flex items-center justify-center">
           {embedUrl ? (
-            <div className="w-full" style={{ maxHeight: '70vh' }}>
+            <div className="w-full max-w-5xl" style={{ maxHeight: '70vh' }}>
               <div className="relative w-full" style={{ paddingBottom: '56.25%' }}>
                 <iframe
                   src={embedUrl}
@@ -158,7 +158,7 @@ export default function VideoPage({ params }: { params: Promise<{ id: string }> 
               </div>
             </div>
           ) : (
-            <div className="w-full flex items-center justify-center py-24 text-white">
+            <div className="w-full flex items-center justify-center py-24 text-white max-w-5xl">
               <p>Video unavailable</p>
             </div>
           )}

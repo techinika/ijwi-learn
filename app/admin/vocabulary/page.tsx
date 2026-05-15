@@ -242,18 +242,18 @@ export default function VocabularyPage() {
             </Link>
           </div>
 
-          <div className="bg-gradient-to-r from-primary-600 to-primary-700 rounded-2xl p-6 text-white mb-8 flex items-center justify-between">
+          <div className="bg-gradient-to-r from-primary-600 to-primary-700 rounded-2xl p-6 text-white mb-8 flex flex-col sm:flex-row items-start sm:items-center sm:justify-between gap-4">
             <div>
               <h1 className="text-2xl font-bold">Vocabulary Management</h1>
               <p className="text-primary-100 mt-1">Add, edit, and manage Kinyarwanda vocabulary words</p>
             </div>
-            <div className="flex gap-3">
-              <button onClick={() => setShowBulkModal(true)} className="flex items-center gap-2 bg-white/20 text-white px-4 py-2 rounded-lg font-semibold hover:bg-white/30 transition-colors">
-                <Upload size={18} />
-                Bulk Add
+            <div className="flex gap-2 sm:gap-3">
+              <button onClick={() => setShowBulkModal(true)} className="flex items-center gap-2 bg-white/20 text-white px-3 sm:px-4 py-2 rounded-lg font-semibold hover:bg-white/30 transition-colors text-sm">
+                <Upload size={16} />
+                <span className="hidden sm:inline">Bulk Add</span>
               </button>
-              <button onClick={openAdd} className="flex items-center gap-2 bg-white text-primary-600 px-4 py-2 rounded-lg font-semibold hover:bg-primary-50 transition-colors">
-                <Plus size={18} />
+              <button onClick={openAdd} className="flex items-center gap-2 bg-white text-primary-600 px-3 sm:px-4 py-2 rounded-lg font-semibold hover:bg-primary-50 transition-colors text-sm">
+                <Plus size={16} />
                 Add Vocabulary
               </button>
             </div>

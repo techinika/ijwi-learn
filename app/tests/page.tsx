@@ -1,7 +1,8 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, Suspense } from 'react';
 import Link from 'next/link';
+import { useSearchParams } from 'next/navigation';
 import Navbar from '@/components/Navbar';
 import { useAuth } from '@/context/AuthContext';
 import { dbService, Level, Test, TestQuestion, PointHistory, TestAttempt } from '@/lib/database';
@@ -10,7 +11,7 @@ import { Loading, FetchLoading } from '@/app/AppLoading';
 
 const TESTS_PER_PAGE = 6;
 
-export default function TestsPage() {
+function TestsPageContent() {
   const { user, userData, incrementTestsCompleted, incrementConsecutivePasses, resetConsecutivePasses, completeLevel } = useAuth();
   const [tests, setTests] = useState<Test[]>([]);
   const [levels, setLevels] = useState<Level[]>([]);
@@ -27,6 +28,17 @@ export default function TestsPage() {
   const [pointHistory, setPointHistory] = useState<PointHistory[]>([]);
   const [testAttempts, setTestAttempts] = useState<TestAttempt[]>([]);
   const [showHistory, setShowHistory] = useState(false);
+  const searchParams = useSearchParams();
+
+  useEffect(() => {
+    const startParam = searchParams.get('start');
+    if (startParam && tests.length > 0) {
+      const testExists = tests.some(t => t.levelId === startParam);
+      if (testExists) {
+        startTest(startParam);
+      }
+    }
+  }, [searchParams, tests]);
 
   useEffect(() => {
     loadData();
@@ -301,34 +313,34 @@ export default function TestsPage() {
             <p className="text-primary-100">Take a test to earn your certificate. You need 80% or higher to pass.</p>
           </div>
 
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-8">
-            <div className="bg-white rounded-xl p-4 shadow-sm border border-gray-100 text-center">
-              <div className="w-10 h-10 bg-amber-100 rounded-xl flex items-center justify-center text-amber-600 mx-auto mb-2">
-                <Target size={20} />
+          <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 sm:gap-4 mb-6">
+            <div className="bg-white rounded-xl p-3 sm:p-4 shadow-sm border border-gray-100 text-center">
+              <div className="w-8 h-8 sm:w-10 sm:h-10 bg-amber-100 rounded-xl flex items-center justify-center text-amber-600 mx-auto mb-2">
+                <Target size={18} />
               </div>
-              <div className="text-2xl font-bold text-gray-900">{totalPoints}</div>
-              <div className="text-sm text-gray-500">Total Points</div>
+              <div className="text-xl sm:text-2xl font-bold text-gray-900">{totalPoints}</div>
+              <div className="text-xs sm:text-sm text-gray-500">Total Points</div>
             </div>
-            <div className="bg-white rounded-xl p-4 shadow-sm border border-gray-100 text-center">
-              <div className="w-10 h-10 bg-red-100 rounded-xl flex items-center justify-center text-red-600 mx-auto mb-2">
-                <TrendingUp size={20} />
+            <div className="bg-white rounded-xl p-3 sm:p-4 shadow-sm border border-gray-100 text-center">
+              <div className="w-8 h-8 sm:w-10 sm:h-10 bg-red-100 rounded-xl flex items-center justify-center text-red-600 mx-auto mb-2">
+                <TrendingUp size={18} />
               </div>
-              <div className="text-2xl font-bold text-gray-900">{consecutivePasses}</div>
-              <div className="text-sm text-gray-500">Streak</div>
+              <div className="text-xl sm:text-2xl font-bold text-gray-900">{consecutivePasses}</div>
+              <div className="text-xs sm:text-sm text-gray-500">Streak</div>
             </div>
-            <div className="bg-white rounded-xl p-4 shadow-sm border border-gray-100 text-center">
-              <div className="w-10 h-10 bg-emerald-100 rounded-xl flex items-center justify-center text-emerald-600 mx-auto mb-2">
-                <Award size={20} />
+            <div className="bg-white rounded-xl p-3 sm:p-4 shadow-sm border border-gray-100 text-center">
+              <div className="w-8 h-8 sm:w-10 sm:h-10 bg-emerald-100 rounded-xl flex items-center justify-center text-emerald-600 mx-auto mb-2">
+                <Award size={18} />
               </div>
-              <div className="text-2xl font-bold text-gray-900">{userData?.testsCompleted || 0}</div>
-              <div className="text-sm text-gray-500">Tests Done</div>
+              <div className="text-xl sm:text-2xl font-bold text-gray-900">{userData?.testsCompleted || 0}</div>
+              <div className="text-xs sm:text-sm text-gray-500">Tests Done</div>
             </div>
-            <div className="bg-white rounded-xl p-4 shadow-sm border border-gray-100 text-center">
-              <div className="w-10 h-10 bg-purple-100 rounded-xl flex items-center justify-center text-purple-600 mx-auto mb-2">
-                <Award size={20} />
+            <div className="bg-white rounded-xl p-3 sm:p-4 shadow-sm border border-gray-100 text-center">
+              <div className="w-8 h-8 sm:w-10 sm:h-10 bg-purple-100 rounded-xl flex items-center justify-center text-purple-600 mx-auto mb-2">
+                <Award size={18} />
               </div>
-              <div className="text-2xl font-bold text-gray-900">{meritPoints}</div>
-              <div className="text-sm text-gray-500">Merit Points</div>
+              <div className="text-xl sm:text-2xl font-bold text-gray-900">{meritPoints}</div>
+              <div className="text-xs sm:text-sm text-gray-500">Merit Points</div>
             </div>
           </div>
 
@@ -385,10 +397,10 @@ export default function TestsPage() {
                 };
                 const bgColor = colorMap[level?.color || 'blue'] || 'bg-gray-500';
                 return (
-                  <div
+                  <Link
                     key={test.id}
-                    onClick={() => startTest(test.levelId)}
-                    className="bg-white p-5 rounded-xl border-2 border-gray-200 cursor-pointer hover:shadow-lg hover:border-primary-300 transition-all"
+                    href={`/tests/${test.levelId}`}
+                    className="bg-white p-5 rounded-xl border-2 border-gray-200 hover:shadow-lg hover:border-primary-300 transition-all block"
                   >
                     <div className="flex items-center gap-4 mb-4">
                       <div className={`w-12 h-12 ${bgColor} rounded-xl flex items-center justify-center text-white`}>
@@ -402,16 +414,16 @@ export default function TestsPage() {
                       </div>
                     </div>
                     <div className="flex items-center gap-2">
-                      <button className="flex-1 py-3 bg-primary-600 text-white rounded-xl hover:bg-primary-700 font-medium text-sm shadow-md">
-                        {passedLevelIds.has(test.levelId) ? 'Retry Test' : 'Start Test'}
-                      </button>
+                      <span className="flex-1 py-3 bg-primary-600 text-white rounded-xl font-medium text-sm shadow-md text-center">
+                        {passedLevelIds.has(test.levelId) ? 'View Details' : 'Start Test'}
+                      </span>
                       {passedLevelIds.has(test.levelId) && (
                         <span className="inline-flex items-center gap-1 px-3 py-2 bg-emerald-100 text-emerald-700 rounded-xl text-xs font-medium whitespace-nowrap">
                           Passed
                         </span>
                       )}
                     </div>
-                  </div>
+                  </Link>
                 );
               })}
             </div>
@@ -547,5 +559,13 @@ export default function TestsPage() {
         </div>
       )}
     </div>
+  );
+}
+
+export default function TestsPage() {
+  return (
+    <Suspense fallback={<div className="min-h-screen bg-gray-50"><Navbar /><div className="pt-28 pb-12 px-4 text-center"><Loading text="Loading..." /></div></div>}>
+      <TestsPageContent />
+    </Suspense>
   );
 }

@@ -271,14 +271,16 @@ export default function CertificatesPage() {
                 <X size={24} />
               </button>
             </div>
-            <div className="p-6 overflow-auto max-h-[80vh] flex justify-center">
-              <Certificate
-                userName={user.displayName || 'Learner'}
-                level={viewingCertificate.levelName}
-                score={viewingCertificate.score}
-                date={formatDate(viewingCertificate.completedAt)}
-                certificateId={viewingCertificate.certificateId || generateCertificateId(user.uid, viewingCertificate.levelName)}
-              />
+            <div className="p-4 sm:p-6 overflow-auto max-h-[80vh] flex justify-center items-center">
+              <div className="w-full max-w-[600px]">
+                <Certificate
+                  userName={user.displayName || 'Learner'}
+                  level={viewingCertificate.levelName}
+                  score={viewingCertificate.score}
+                  date={formatDate(viewingCertificate.completedAt)}
+                  certificateId={viewingCertificate.certificateId || generateCertificateId(user.uid, viewingCertificate.levelName)}
+                />
+              </div>
             </div>
             <div className="p-4 border-t border-gray-100 flex justify-end gap-3">
               <button

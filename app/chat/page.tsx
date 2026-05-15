@@ -31,7 +31,9 @@ export default function ChatPage() {
   }, [user]);
 
   useEffect(() => {
-    messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
+    if (messages.length > 1) {
+      messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
+    }
   }, [messages]);
 
   const loadMessages = async () => {
@@ -104,9 +106,9 @@ export default function ChatPage() {
   return (
     <div className="min-h-screen bg-gray-50">
       <Navbar />
-      <main className="pt-28 pb-12 px-4">
+      <main className="pt-20 md:pt-28 pb-12 px-4">
         <div className="max-w-3xl mx-auto">
-          <div className="flex items-center gap-3 mb-8">
+          <div className="flex items-center gap-3 mb-6">
             <Link href="/" className="text-blue-600 hover:underline">
               <ArrowLeft size={18} />
             </Link>
@@ -124,7 +126,7 @@ export default function ChatPage() {
               </div>
             </div>
 
-            <div className="h-[calc(100vh-320px)] md:h-[450px] min-h-[300px] flex flex-col">
+            <div className="h-[calc(100vh-280px)] md:h-[450px] min-h-[300px] flex flex-col">
               <div className="flex-1 p-5 overflow-y-auto space-y-4">
                 {loading ? (
                   <Loading text="Loading conversation..." />

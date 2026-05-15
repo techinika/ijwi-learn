@@ -102,7 +102,7 @@ const openAdd = () => {
             </Link>
           </div>
 
-          <div className="bg-gradient-to-r from-primary-600 to-primary-700 rounded-2xl p-6 text-white mb-8 flex items-center justify-between">
+          <div className="bg-gradient-to-r from-primary-600 to-primary-700 rounded-2xl p-6 text-white mb-8 flex flex-col sm:flex-row items-start sm:items-center sm:justify-between gap-4">
             <div className="flex items-center gap-3">
               <Layers size={28} />
               <div>
@@ -110,7 +110,7 @@ const openAdd = () => {
                 <p className="text-primary-100 mt-1">Manage learning levels & pricing</p>
               </div>
             </div>
-            <button onClick={openAdd} className="flex items-center gap-2 bg-white text-primary-600 px-4 py-2 rounded-lg font-semibold hover:bg-primary-50 transition-colors">
+            <button onClick={openAdd} className="flex items-center gap-2 bg-white text-primary-600 px-4 py-2 rounded-lg font-semibold hover:bg-primary-50 transition-colors shrink-0">
               <Plus size={18} />
               Add Level
             </button>
