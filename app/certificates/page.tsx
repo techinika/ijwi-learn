@@ -276,7 +276,7 @@ export default function CertificatesPage() {
                 level={viewingCertificate.levelName}
                 score={viewingCertificate.score}
                 date={formatDate(viewingCertificate.completedAt)}
-                certificateId={generateCertificateId(user.uid, viewingCertificate.levelName)}
+                certificateId={viewingCertificate.certificateId || generateCertificateId(user.uid, viewingCertificate.levelName)}
               />
             </div>
             <div className="p-4 border-t border-gray-100 flex justify-end gap-3">

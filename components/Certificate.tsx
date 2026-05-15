@@ -11,6 +11,11 @@ interface CertificateProps {
   certificateId: string;
 }
 
+function truncateId(id: string, prefixLen = 12, suffixLen = 6): string {
+  if (id.length <= prefixLen + suffixLen + 3) return id;
+  return id.slice(0, prefixLen) + '...' + id.slice(-suffixLen);
+}
+
 const Certificate = forwardRef<HTMLDivElement, CertificateProps>(
   ({ userName, level, score, date, certificateId }, ref) => {
     const [qrDataUrl, setQrDataUrl] = useState('');
@@ -42,8 +47,12 @@ const Certificate = forwardRef<HTMLDivElement, CertificateProps>(
 
         <div style={{ textAlign: 'center', height: '100%', display: 'flex', flexDirection: 'column', padding: '32px' }}>
           <div style={{ marginBottom: '8px' }}>
-            <div style={{ display: 'inline-flex', alignItems: 'center', justifyContent: 'center', width: '56px', height: '56px', backgroundColor: '#fef3c7', borderRadius: '50%' }}>
-              <span style={{ color: '#d97706', fontSize: '24px', fontWeight: 700 }}>I</span>
+            <div style={{ display: 'inline-flex', alignItems: 'center', justifyContent: 'center', width: '56px', height: '56px', backgroundColor: '#1c4d72', borderRadius: '12px' }}>
+              <svg width="32" height="32" viewBox="0 0 100 100" fill="none">
+                <path d="M50 20L65 35L65 55L50 70L35 55L35 35Z" stroke="white" strokeWidth="6" fill="none" />
+                <circle cx="50" cy="45" r="10" fill="white" />
+                <path d="M42 60L50 68L58 60" stroke="white" strokeWidth="6" strokeLinecap="round" fill="none" />
+              </svg>
             </div>
           </div>
 
@@ -82,7 +91,7 @@ const Certificate = forwardRef<HTMLDivElement, CertificateProps>(
 
             <div style={{ textAlign: 'right' }}>
               <div style={{ fontSize: '12px', color: '#6b7280' }}>Certificate ID</div>
-              <div style={{ fontWeight: 500, color: '#111827', fontSize: '12px' }}>{certificateId}</div>
+              <div style={{ fontWeight: 500, color: '#111827', fontSize: '12px' }}>{truncateId(certificateId)}</div>
             </div>
           </div>
         </div>
