@@ -9,6 +9,7 @@ import {
   FileText,
   Award,
   MessageCircle,
+  MessageSquare,
   LogOut,
   User,
   Trophy,
@@ -91,6 +92,13 @@ export default function Navbar() {
                 Tests
               </NavLink>
               <NavLink
+                href="/dialogues"
+                icon={<MessageSquare size={18} />}
+                active={isActive("/dialogues")}
+              >
+                Dialogues
+              </NavLink>
+              <NavLink
                 href="/certificates"
                 icon={<Award size={18} />}
                 active={isActive("/certificates")}
@@ -165,6 +173,9 @@ export default function Navbar() {
                         </MobileNavLink>
                         <MobileNavLink href="/tests" icon={<FileText size={18} />} active={isActive("/tests")}>
                           Tests
+                        </MobileNavLink>
+                        <MobileNavLink href="/dialogues" icon={<MessageSquare size={18} />} active={isActive("/dialogues")}>
+                          Dialogues
                         </MobileNavLink>
                         <MobileNavLink href="/certificates" icon={<Award size={18} />} active={isActive("/certificates")}>
                           Certificates

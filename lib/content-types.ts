@@ -103,3 +103,20 @@ export interface Language {
   isDefault: boolean;
   flag: string;
 }
+
+export interface DialogueLine {
+  speakerIndex: number;
+  kinyarwanda: string;
+  english: string;
+}
+
+export interface Dialogue {
+  id: string;
+  levelId: string;
+  title: string;
+  description: string;
+  difficulty: string;
+  speakers: string[];
+  lines: DialogueLine[];
+  isActive: boolean;
+}

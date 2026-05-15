@@ -260,6 +260,23 @@ export interface ChatThread {
   unreadCount: number;
 }
 
+export interface DialogueLine {
+  speakerIndex: number;
+  kinyarwanda: string;
+  english: string;
+}
+
+export interface Dialogue {
+  id: string;
+  levelId: string;
+  title: string;
+  description: string;
+  difficulty: string;
+  speakers: string[];
+  lines: DialogueLine[];
+  isActive: boolean;
+}
+
 class DatabaseService {
   private levelsCollection = collection(db, 'levels');
   private vocabularyCollection = collection(db, 'vocabulary');
@@ -278,6 +295,7 @@ class DatabaseService {
   private videoCategoriesCollection = collection(db, 'videoCategories');
   private subscriptionsCollection = collection(db, 'subscriptions');
   private invoicesCollection = collection(db, 'invoices');
+  private dialoguesCollection = collection(db, 'dialogues');
   private testAttemptsCollection = collection(db, 'testAttempts');
 
   // LEVELS
@@ -369,6 +387,46 @@ class DatabaseService {
 
   async deleteStory(id: string): Promise<void> {
     await deleteDoc(doc(this.storiesCollection, id));
+  }
+
+  // DIALOGUES
+  async getDialogues(filters?: { levelId?: string; levelIds?: string[]; difficulty?: string; isActive?: boolean }): Promise<Dialogue[]> {
+    let q = query(this.dialoguesCollection, orderBy('title'));
+    if (filters?.levelId) {
+      q = query(this.dialoguesCollection, where('levelId', '==', filters.levelId), orderBy('title'));
+    }
+    const snapshot = await getDocs(q);
+    let results = snapshot.docs.map(d => ({ id: d.id, ...d.data() } as Dialogue));
+    
+    if (filters?.levelIds && filters.levelIds.length > 0) {
+      results = results.filter(r => filters.levelIds!.includes(r.levelId));
+    }
+    if (filters?.difficulty) {
+      results = results.filter(r => r.difficulty === filters.difficulty);
+    }
+    if (filters?.isActive !== undefined) {
+      results = results.filter(r => r.isActive === filters.isActive);
+    }
+    return results;
+  }
+
+  async getDialogue(id: string): Promise<Dialogue | null> {
+    const docSnap = await getDoc(doc(this.dialoguesCollection, id));
+    if (!docSnap.exists()) return null;
+    return { id: docSnap.id, ...docSnap.data() } as Dialogue;
+  }
+
+  async createDialogue(data: Omit<Dialogue, 'id'>): Promise<string> {
+    const docRef = await addDoc(this.dialoguesCollection, data);
+    return docRef.id;
+  }
+
+  async updateDialogue(id: string, data: Partial<Dialogue>): Promise<void> {
+    await updateDoc(doc(this.dialoguesCollection, id), data);
+  }
+
+  async deleteDialogue(id: string): Promise<void> {
+    await deleteDoc(doc(this.dialoguesCollection, id));
   }
 
   // TESTS

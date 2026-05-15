@@ -7,7 +7,7 @@ import { useAuth } from '@/context/AuthContext';
 import { dbService } from '@/lib/database';
 import {
   BookOpen, Users, MessageCircle, Settings, Plus, Type, FileCode,
-  Globe, BarChart3, ChevronRight, Layers, Languages, BookMarked, Play, Award, Folder
+  Globe, BarChart3, ChevronRight, Layers, Languages, BookMarked, Play, Award, Folder, MessageSquare
 } from 'lucide-react';
 
 export default function AdminDashboard() {
@@ -58,6 +58,7 @@ export default function AdminDashboard() {
     { title: 'Content', items: [
       { href: '/admin/vocabulary', label: 'Vocabulary', icon: BookOpen, desc: 'Manage vocabulary words', color: 'bg-emerald-500' },
       { href: '/admin/stories', label: 'Stories', icon: BookMarked, desc: 'WYSIWYG story editor with translations', color: 'bg-primary-600' },
+      { href: '/admin/dialogues', label: 'Dialogues', icon: MessageSquare, desc: 'Manage conversation dialogues', color: 'bg-cyan-500' },
       { href: '/admin/levels', label: 'Levels', icon: Layers, desc: 'Manage learning levels & pricing', color: 'bg-purple-500' },
       { href: '/admin/videos', label: 'Videos', icon: Play, desc: 'Manage video lessons', color: 'bg-red-500' },
       { href: '/admin/video-categories', label: 'Video Categories', icon: Folder, desc: 'Manage video categories', color: 'bg-orange-500' },
