@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useEffect, useRef, useCallback } from 'react';
+import { createPortal } from 'react-dom';
 import { dbService, Vocabulary, Story } from '@/lib/database';
 import { Search, X, BookOpen, ChevronRight, Volume2, ExternalLink } from 'lucide-react';
 
@@ -194,11 +195,11 @@ export default function GlobalSearch() {
         <span className="hidden lg:inline">Search</span>
       </button>
 
-      {open && (
-        <div className="fixed inset-0 z-[100] flex items-start justify-center pt-24" onClick={() => setOpen(false)}>
+      {open && typeof document !== 'undefined' && createPortal(
+        <div className="fixed inset-0 z-[100] flex items-start justify-center pt-16 sm:pt-24" onClick={() => setOpen(false)}>
           <div className="fixed inset-0 bg-black/50 backdrop-blur-sm" />
           <div
-            className="relative bg-white rounded-2xl shadow-2xl w-full max-w-xl max-h-[70vh] overflow-hidden border border-gray-200"
+            className="relative bg-white rounded-2xl shadow-2xl w-full max-w-xl max-h-[75vh] sm:max-h-[70vh] mx-4 overflow-hidden border border-gray-200"
             onClick={e => e.stopPropagation()}
             onKeyDown={handleKeyDown}
           >
@@ -222,7 +223,7 @@ export default function GlobalSearch() {
               </button>
             </div>
 
-            <div className="overflow-y-auto max-h-[calc(70vh-60px)]">
+            <div className="overflow-y-auto max-h-[calc(75vh-80px)] sm:max-h-[calc(70vh-60px)]">
               {selectedVocab ? renderVocabularyDetail(selectedVocab)
               : selectedStory ? renderStoryDetail(selectedStory)
               : !query.trim() ? (
@@ -276,7 +277,8 @@ export default function GlobalSearch() {
               )}
             </div>
           </div>
-        </div>
+        </div>,
+        document.body
       )}
     </>
   );

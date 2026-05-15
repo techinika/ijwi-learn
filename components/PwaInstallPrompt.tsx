@@ -4,7 +4,7 @@ import { useState, useEffect } from 'react';
 import { X, Download } from 'lucide-react';
 
 const DISMISSAL_KEY = 'pwa-install-dismissed';
-const DISMISSAL_DAYS = 7;
+const DISMISSAL_HOURS = 1;
 
 export default function PwaInstallPrompt() {
   const [deferredPrompt, setDeferredPrompt] = useState<any>(null);
@@ -18,8 +18,8 @@ export default function PwaInstallPrompt() {
     if (dismissed) {
       const dismissedDate = new Date(dismissed);
       const now = new Date();
-      const daysSinceDismissal = Math.floor((now.getTime() - dismissedDate.getTime()) / (1000 * 60 * 60 * 24));
-      if (daysSinceDismissal < DISMISSAL_DAYS) return;
+      const hoursSinceDismissal = Math.floor((now.getTime() - dismissedDate.getTime()) / (1000 * 60 * 60));
+      if (hoursSinceDismissal < DISMISSAL_HOURS) return;
     }
 
     const handler = (e: Event) => {
