@@ -62,9 +62,6 @@ export default function Navbar() {
       <div className="w-full mx-auto px-4 sm:px-6 py-3">
         <div className="flex items-center justify-between">
           <Link href="/" className="flex items-center gap-3 group">
-            <div className="w-10 h-10 bg-gradient-to-br from-primary-500 to-primary-700 rounded-xl flex items-center justify-center text-white shadow-md group-hover:scale-105 transition-transform">
-              <GraduationCap size={22} />
-            </div>
             <span className="text-xl font-bold text-gray-900">IJWI-LEARN</span>
           </Link>
 
