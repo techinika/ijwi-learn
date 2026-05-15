@@ -10,14 +10,15 @@ A modern web application for learning the Kinyarwanda language. The platform off
 - **Database**: Firebase Firestore
 - **Authentication**: Firebase Auth (Google OAuth only)
 - **Payment**: Pesapal (credit/debit cards) + PayPack (MTN/Airtel Rwanda mobile money)
+- **PWA**: Service worker caching, web app manifest, install prompt
 
 ## Key Directories
 
 ```
 app/                    # Next.js App Router pages
 ├── page.tsx           # Landing page / dashboard
-├── layout.tsx         # Root layout with AuthProvider
-├── globals.css        # Global styles, CSS variables, theme
+├── layout.tsx         # Root layout with AuthProvider + PWA components
+├── globals.css        # Global styles, CSS variables, theme, responsive fonts
 ├── admin/             # Admin panel (vocabulary, stories, levels CRUD)
 ├── certificates/     # Certificate viewing and PDF download
 ├── chat/             # Teacher chat interface
@@ -31,9 +32,13 @@ app/                    # Next.js App Router pages
 ├── videos/           # Video lessons
 └── payment/          # Payment success/failure pages
 components/           # Reusable components
-├── Navbar.tsx        # Navigation with user menu
+├── Navbar.tsx        # Navigation with user menu, mobile-responsive, search
+├── GlobalSearch.tsx  # Full-text search across vocabulary and stories
 ├── PaymentModal.tsx   # Payment integration modal
-└── Certificate.tsx   # PDF certificate component
+├── Certificate.tsx   # PDF certificate (solid colors, QR code)
+├── ConfirmModal.tsx  # Reusable confirmation modal (danger/warning/info/success)
+├── PwaInstallPrompt.tsx # PWA install modal (centered, dismissible 7 days)
+└── PwaRegister.tsx   # Service worker registration
 lib/
 ├── database.ts       # Firestore service (CRUD for all collections)
 ├── content.ts        # Content fetching with fallback data
@@ -42,6 +47,11 @@ lib/
 └── certificate.ts    # Certificate PDF generation
 context/
 └── AuthContext.tsx    # Auth state, user data, points system
+public/
+├── manifest.json     # PWA manifest (SVG icons, standalone display)
+├── sw.js             # Service worker (cache-first static, network-first API)
+├── icon.svg          # App icon for PWA
+└── llm.txt           # This file
 ```
 
 ## Firebase Collections
@@ -73,6 +83,11 @@ context/
 - Admin dashboard with full CRUD for content management
 - Payment modal with Pesapal (cards) and PayPack (Rwanda mobile money)
 - Points system with history tracking (tests +10, pass bonus +20)
+- Global search (vocabulary, stories) with detail reader modals
+- PWA: installable mobile app with offline caching
+- Mobile-first responsive design with adaptive fonts and touch navigation
+- Test history with score trend charts, retry, passed badges
+- Multi-level categories and difficulties (levelIds: string[])
 
 ## Points System
 
@@ -90,6 +105,7 @@ context/
 - Background: #FAFAFA
 - Font: Plus Jakarta Sans
 - Layout: max-w-5xl centered, pt-28 for fixed navbar clearance
+- Mobile responsive: h1 28px, body 16px below 640px
 
 ## Routes (App Router)
 
@@ -108,3 +124,11 @@ context/
 | /admin | Dynamic | Content management |
 | /payment/success | Dynamic | Payment success |
 | /payment/failed | Dynamic | Payment failure |
+
+## PWA Implementation
+
+- **manifest.json**: SVG icons, standalone display, portrait orientation, education category
+- **sw.js**: Cache-first for static assets, network-first for API calls, offline fallback
+- **PwaInstallPrompt.tsx**: beforeinstallprompt listener, centered modal with benefits list, localStorage dismissal (7 days), not shown if already standalone
+- **PwaRegister.tsx**: Client component registering the service worker on mount
+- **Root layout**: Both PwaRegister and PwaInstallPrompt rendered globally

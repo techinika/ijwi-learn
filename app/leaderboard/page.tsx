@@ -160,8 +160,8 @@ export default function LeaderboardPage() {
                   <h2 className="text-xl font-bold text-gray-900">Champions League</h2>
                   <span className="text-sm text-gray-400">Top {LEAGUE_SIZE}</span>
                 </div>
-                <div className="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden">
-                  <table className="w-full">
+                <div className="bg-white rounded-xl shadow-sm border border-gray-200 overflow-x-auto">
+                  <table className="w-full min-w-[500px]">
                     <thead className="bg-gray-50">
                       <tr>
                         <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Rank</th>
@@ -227,8 +227,8 @@ export default function LeaderboardPage() {
                     <h2 className="text-xl font-bold text-gray-900">On the Bubble</h2>
                     <span className="text-sm text-gray-400">Next {BUBBLE_SIZE} to enter</span>
                   </div>
-                  <div className="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden border-dashed">
-                    <table className="w-full">
+                  <div className="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden overflow-x-auto border-dashed">
+                    <table className="w-full min-w-[500px]">
                       <thead className="bg-gray-50">
                         <tr>
                           <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Rank</th>

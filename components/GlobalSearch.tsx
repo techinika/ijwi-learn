@@ -196,7 +196,7 @@ export default function GlobalSearch() {
 
       {open && (
         <div className="fixed inset-0 z-[100] flex items-start justify-center pt-24" onClick={() => setOpen(false)}>
-          <div className="fixed inset-0 bg-black/50" />
+          <div className="fixed inset-0 bg-black/50 backdrop-blur-sm" />
           <div
             className="relative bg-white rounded-2xl shadow-2xl w-full max-w-xl max-h-[70vh] overflow-hidden border border-gray-200"
             onClick={e => e.stopPropagation()}

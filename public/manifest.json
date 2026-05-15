@@ -1,16 +1,29 @@
 {
-  "name": "IJWI-LEARN",
+  "name": "IJWI-LEARN - Learn Kinyarwanda",
   "short_name": "IJWI-LEARN",
-  "description": "Learn Kinyarwanda Online",
+  "description": "Master the Kinyarwanda language with interactive lessons, AI-powered conversation practice, video tutorials, tests, and certificates. From beginner to fluent, at your own pace.",
   "start_url": "/",
   "display": "standalone",
-  "background_color": "#ffffff",
+  "background_color": "#fafafa",
   "theme_color": "#1c4d72",
+  "orientation": "portrait-primary",
+  "categories": ["education", "language"],
+  "lang": "en",
+  "dir": "ltr",
   "icons": [
     {
       "src": "/icon.svg",
       "sizes": "any",
-      "type": "image/svg+xml"
+      "type": "image/svg+xml",
+      "purpose": "any"
+    },
+    {
+      "src": "/icon.svg",
+      "sizes": "any",
+      "type": "image/svg+xml",
+      "purpose": "maskable"
     }
-  ]
+  ],
+  "screenshots": [],
+  "prefer_related_applications": false
 }

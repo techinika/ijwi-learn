@@ -252,18 +252,20 @@ export default function Home() {
           </div>
 
           <h2 className="text-xl font-bold text-gray-900 mt-10 mb-6">Quick Access</h2>
-          <div className="grid grid-cols-3 gap-5">
+          <div className="grid sm:grid-cols-3 gap-4">
             {[
               { href: '/videos', icon: <Play size={24} />, title: 'Videos', desc: 'Learn visually', color: 'bg-red-100 text-red-600' },
               { href: '/tests', icon: <FileText size={24} />, title: 'Tests', desc: 'Track progress', color: 'bg-amber-100 text-amber-600' },
               { href: '/chat', icon: <MessageSquare size={24} />, title: 'Chat', desc: 'Ask teachers', color: 'bg-emerald-100 text-emerald-600' },
             ].map((item, i) => (
-              <Link key={i} href={item.href} className="flex flex-col items-center gap-3 p-6 bg-white rounded-2xl shadow-sm border border-gray-100 hover:border-primary-200 hover:shadow-md transition-all">
-                <div className={`w-14 h-14 ${item.color} rounded-xl flex items-center justify-center`}>
+              <Link key={i} href={item.href} className="flex flex-col sm:flex-row items-center gap-3 p-4 sm:p-6 bg-white rounded-2xl shadow-sm border border-gray-100 hover:border-primary-200 hover:shadow-md transition-all">
+                <div className={`w-12 h-12 sm:w-14 sm:h-14 ${item.color} rounded-xl flex items-center justify-center shrink-0`}>
                   {item.icon}
                 </div>
-                <span className="font-semibold text-gray-800">{item.title}</span>
-                <span className="text-sm text-gray-500">{item.desc}</span>
+                <div className="text-center sm:text-left">
+                  <span className="font-semibold text-gray-800">{item.title}</span>
+                  <span className="block text-sm text-gray-500">{item.desc}</span>
+                </div>
               </Link>
             ))}
           </div>
@@ -376,7 +378,7 @@ function LandingPage({ showFeatures, setShowFeatures, signInWithGoogle, levels, 
               </div>
             </div>
 
-            <div className="mt-16 flex justify-center gap-12">
+            <div className="mt-16 flex justify-center gap-6 sm:gap-12">
               <div className="text-center">
                 <div className="text-3xl font-bold text-gray-900">{levels.length}</div>
                 <div className="text-sm text-gray-500">Proficiency Levels</div>

@@ -124,7 +124,7 @@ export default function ChatPage() {
               </div>
             </div>
 
-            <div className="h-[450px] flex flex-col">
+            <div className="h-[calc(100vh-320px)] md:h-[450px] min-h-[300px] flex flex-col">
               <div className="flex-1 p-5 overflow-y-auto space-y-4">
                 {loading ? (
                   <Loading text="Loading conversation..." />

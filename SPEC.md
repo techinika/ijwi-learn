@@ -5,6 +5,7 @@
 - **Type**: Web Application (Next.js 16 + React 19 + Tailwind CSS)
 - **Core Functionality**: A comprehensive Kinyarwanda language learning platform with multiple proficiency levels, AI-powered practice, video content, testing, and certification
 - **Target Users**: People learning Kinyarwanda at various levels - beginners, intermediate learners, and fluent speakers seeking advancement
+- **PWA**: Installable as a mobile app with offline caching, service worker, and install prompt
 
 ## UI/UX Specification
 
@@ -16,12 +17,14 @@
   - Mobile: < 640px
   - Tablet: 640px - 1024px
   - Desktop: > 1024px
+- **Mobile Menu**: Hamburger menu with all nav links + search bar
+- **PWA Install Modal**: Centered modal with benefit list, install/not now buttons, 7-day dismissal
 
 ### Visual Design
 
 #### Color Palette
-- **Primary**: `#2563EB` (Royal Blue - trust, learning)
-- **Primary Dark**: `#1D4ED8`
+- **Primary**: `#1c4d72` (Deep Navy - trust, learning)
+- **Primary Dark**: `#153a57`
 - **Secondary**: `#10B981` (Emerald - growth, success)
 - **Accent**: `#F59E0B` (Amber - achievement, energy)
 - **Background**: `#FAFAFA` (Light gray)
@@ -33,11 +36,11 @@
 
 #### Typography
 - **Font Family**: "Plus Jakarta Sans" (modern, clean, accessible)
-- **Heading XL**: 48px, font-weight 700, line-height 1.2
-- **Heading L**: 32px, font-weight 600, line-height 1.3
-- **Heading M**: 24px, font-weight 600, line-height 1.4
+- **Heading XL**: 48px (28px mobile), font-weight 700, line-height 1.2
+- **Heading L**: 32px (24px mobile), font-weight 600, line-height 1.3
+- **Heading M**: 24px (20px mobile), font-weight 600, line-height 1.4
 - **Body Large**: 20px, font-weight 400, line-height 1.6
-- **Body**: 18px, font-weight 400, line-height 1.6
+- **Body**: 18px (16px mobile), font-weight 400, line-height 1.6
 - **Body Small**: 16px, font-weight 400, line-height 1.5
 - **Caption**: 14px, font-weight 500, line-height 1.4
 
@@ -52,10 +55,12 @@
 - **Elevated Shadow**: `0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04)`
 - **Border Radius**: 8px (small), 16px (medium), 24px (large), 9999px (pill)
 - **Transitions**: 200ms ease-in-out (default), 300ms ease-out (page transitions)
+- **Modal Backdrop**: Black 50% + backdrop-blur-sm
+- **Certificate**: Solid colors only (no CSS gradients) for html2canvas compatibility
 
 ### Accessibility Requirements
 - Minimum contrast ratio: 4.5:1 for text
-- Large fonts (18px minimum for body text)
+- Large fonts (18px minimum for body text, 16px mobile)
 - Clear focus indicators
 - Screen reader friendly labels
 - Keyboard navigation support
@@ -119,31 +124,65 @@
 - Progress indicators per level
 - Locked levels shown with upgrade prompt
 - Level completion badges
+- Mobile: hamburger menu with all links + global search
+- Desktop: inline nav links + search + chat button
 
 #### Video Learning
 - Embedded video player (YouTube/Vimeo style)
 - Video lessons per level
 - Progress tracking
 - Transcript view
+- Responsive: aspect-video wrapper, grids single-column on mobile
 
 #### Tests & Certifications
 - Quiz format for each level
 - Minimum 80% to pass
-- 3 attempts per test
+- Unlimited retries
 - Digital certificates on completion
 - Certificate ID for verification
+- QR code on certificate encoding certificate ID
+- Test history modal with score trend chart (bar chart)
+- Passed badge + retry button for completed tests
 
 #### Teacher Chat
 - Real-time chat with teachers
 - Message history stored in Firestore
 - Notification system
 - Quick help button always visible
+- Responsive: height calc(100vh-320px) on mobile, 450px on desktop
 
 #### Payment System
-- Stripe integration (mock for demo)
+- Pesapal (credit/debit cards) + PayPack (MTN/Airtel Rwanda mobile money)
 - Level-based pricing
 - Subscription model
 - Payment required to unlock levels 2-4
+- Pricing grid: 1 card on small screens, 2 on large
+
+#### Global Search
+- Full-text search across vocabulary (en, rw, translations) and stories (title, content)
+- Client-side: loads all data into memory on first open
+- Debounced input (200ms), max 50 results
+- Detail views with back navigation
+- Text-to-speech for pronunciations
+- Accessible via navbar search bar (desktop) and mobile menu
+
+#### PWA (Progressive Web App)
+- **Manifest**: SVG icons, standalone display, portrait orientation, theme color #1c4d72
+- **Service Worker**: Cache-first for static assets, network-first for API calls
+- **Install Prompt**: Listens for beforeinstallprompt event, shows centered modal after 1s delay
+  - Dismiss: hides modal, stores date in localStorage, shows again after 7 days
+  - Install: calls prompt() on deferred event
+  - Auto-hide: not shown if already in standalone mode (display-mode: standalone)
+- **Registration**: Client component PwaRegister.tsx registered in root layout
+
+### Responsive Design
+- Font sizes scale down on mobile via @media (max-width: 640px)
+- Grids use sm:/md:/lg: breakpoints for adaptive columns
+- Tables on leaderboard have overflow-x-auto with min-width for horizontal scroll
+- Chat height adapts to viewport on mobile
+- Quick Access cards stack vertically on mobile
+- Landing page stats use reduced gap on small screens
+- Profile page has proper Navbar + back button
 
 ### Data Structure (Firestore)
 
@@ -209,17 +248,19 @@ chats/{chatId}
 ### Protected Pages (Require Auth)
 2. **Login** (`/login`) - Google sign-in only
 3. **Level Page** (`/learn/[slug]`) - Dynamic level pages with vocabulary flashcards
-7. **Videos** (`/videos`) - Video library
-8. **Tests** (`/tests/[levelId]`) - Level tests
-9. **Certificates** (`/certificates`) - User certificates
-10. **Chat** (`/chat`) - Teacher chat interface
+4. **Videos** (`/videos`) - Video library
+5. **Tests** (`/tests/[levelId]`) - Level tests
+6. **Certificates** (`/certificates`) - User certificates
+7. **Chat** (`/chat`) - Teacher chat interface
+8. **Leaderboard** (`/leaderboard`) - User rankings and standings
+9. **Profile** (`/profile`) - Account info, subscriptions, invoices
 
 ---
 
 ## Component List
 
 ### Layout Components
-- `Navbar` - Top navigation with logo, user menu
+- `Navbar` - Top navigation with logo, user menu, global search, mobile hamburger
 - `Sidebar` - Level navigation
 - `Footer` - Minimal footer
 
@@ -233,12 +274,17 @@ chats/{chatId}
 - `VideoPlayer` - Embedded video player
 - `ChatWindow` - Chat interface
 - `Flashcard` - Vocabulary flashcards
+- `ConfirmModal` - Reusable confirmation modal (danger/warning/info/success, hideCancel)
 
 ### Feature Components
 - `LevelCard` - Level selection cards
 - `VocabularyItem` - Word display with audio
 - `QuizQuestion` - Quiz question display
 - `CertificateCard` - Certificate display
+- `GlobalSearch` - Full-text search modal for vocabulary and stories
+- `PaymentModal` - Payment integration with Pesapal/PayPack
+- `PwaInstallPrompt` - PWA install modal with benefits and dismiss capability
+- `PwaRegister` - Service worker registration
 
 ---
 
@@ -268,6 +314,8 @@ chats/{chatId}
 - [ ] Score calculated correctly
 - [ ] Certificate generated on 80%+ pass
 - [ ] Certificate shows user name, level, date
+- [ ] Test attempts tracked and viewable in history modal
+- [ ] Passed tests show "Passed" badge + retry button
 
 ### Teacher Chat
 - [ ] Chat opens in new section
@@ -279,9 +327,20 @@ chats/{chatId}
 - [ ] Successful payment unlocks level
 - [ ] Payment status saved to user profile
 
+### PWA
+- [ ] App installable on mobile devices via browser prompt
+- [ ] Install modal appears centered with benefits
+- [ ] Modal not shown if already installed (standalone mode)
+- [ ] Dismissed modal stores in localStorage for 7 days
+- [ ] Service worker caches static assets for offline access
+- [ ] API calls fail gracefully when offline
+
 ### Design & Performance
-- [ ] All text minimum 18px
+- [ ] All text minimum 16px on mobile, 18px desktop
 - [ ] Pages load under 3 seconds
-- [ ] Responsive on all devices
+- [ ] Responsive on all devices (mobile-first)
 - [ ] Modern, clean aesthetic
 - [ ] Accessible to screen readers
+- [ ] Font sizes adapt to mobile (h1 max 28px on small screens)
+- [ ] Tables horizontally scrollable on mobile
+- [ ] Interactive elements properly sized for touch targets

@@ -230,42 +230,56 @@ export default function Navbar() {
         </div>
 
         {mobileMenuOpen && user && (
-          <div className="md:hidden py-4 border-t border-gray-100 space-y-2">
-            <MobileNavLink
-              href="/"
-              icon={<GraduationCap size={18} />}
-              active={isActive("/")}
-            >
-              Levels
-            </MobileNavLink>
-            <MobileNavLink
-              href="/videos"
-              icon={<Video size={18} />}
-              active={isActive("/videos")}
-            >
-              Videos
-            </MobileNavLink>
-            <MobileNavLink
-              href="/tests"
-              icon={<FileText size={18} />}
-              active={isActive("/tests")}
-            >
-              Tests
-            </MobileNavLink>
-            <MobileNavLink
-              href="/certificates"
-              icon={<Award size={18} />}
-              active={isActive("/certificates")}
-            >
-              Certificates
-            </MobileNavLink>
-            <MobileNavLink
-              href="/chat"
-              icon={<MessageCircle size={18} />}
-              active={isActive("/chat")}
-            >
-              Chat
-            </MobileNavLink>
+          <div className="md:hidden py-4 border-t border-gray-100 divide-y divide-gray-100">
+            <div className="pb-3">
+              <MobileNavLink
+                href="/"
+                icon={<GraduationCap size={18} />}
+                active={isActive("/")}
+              >
+                Levels
+              </MobileNavLink>
+              <MobileNavLink
+                href="/videos"
+                icon={<Video size={18} />}
+                active={isActive("/videos")}
+              >
+                Videos
+              </MobileNavLink>
+              <MobileNavLink
+                href="/tests"
+                icon={<FileText size={18} />}
+                active={isActive("/tests")}
+              >
+                Tests
+              </MobileNavLink>
+              <MobileNavLink
+                href="/certificates"
+                icon={<Award size={18} />}
+                active={isActive("/certificates")}
+              >
+                Certificates
+              </MobileNavLink>
+              <MobileNavLink
+                href="/leaderboard"
+                icon={<Trophy size={18} />}
+                active={isActive("/leaderboard")}
+              >
+                Leaderboard
+              </MobileNavLink>
+              <MobileNavLink
+                href="/chat"
+                icon={<MessageCircle size={18} />}
+                active={isActive("/chat")}
+              >
+                Chat
+              </MobileNavLink>
+            </div>
+            <div className="pt-3 px-2">
+              <div className="md:hidden">
+                <GlobalSearch />
+              </div>
+            </div>
           </div>
         )}
       </div>

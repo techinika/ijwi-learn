@@ -18,6 +18,9 @@ A modern web application for learning the Kinyarwanda language. Built with Next.
 - **Multi-Language Support**: Vocabulary and stories support translations in multiple languages
 - **Points System**: Earn points for tests (+10) and passing (+20) with full history tracking
 - **SEO Optimized**: Dynamic metadata, sitemap, robots.txt, RSS feed, and LLM context file
+- **PWA Enabled**: Installable as a mobile app with service worker caching and offline support
+- **Install Prompt**: Smart modal prompting users to install the PWA (appears once, dismissible for 7 days)
+- **Mobile-First Responsive**: Fully responsive design optimized for phone learners with adaptive font sizes, layouts, and touch-friendly navigation
 
 ## Tech Stack
 
@@ -28,6 +31,7 @@ A modern web application for learning the Kinyarwanda language. Built with Next.
 - **Authentication**: Firebase Auth (Google OAuth)
 - **Payments**: Pesapal (credit/debit cards) + PayPack (MTN/Airtel Rwanda)
 - **PDF Generation**: html2canvas + jspdf
+- **PWA**: Service worker for offline caching, web app manifest
 
 ## Getting Started
 
@@ -81,9 +85,13 @@ app/                    # App Router pages
 ├── sitemap.ts         # Dynamic sitemap
 └── robots.ts          # Robots.txt
 components/            # Reusable components
-├── Navbar.tsx         # Navigation with user menu
+├── Navbar.tsx         # Navigation with user menu (mobile-responsive, search)
+├── GlobalSearch.tsx   # Full-text search across vocabulary and stories
 ├── PaymentModal.tsx   # Payment integration
-└── Certificate.tsx    # PDF certificate component
+├── Certificate.tsx    # PDF certificate component
+├── ConfirmModal.tsx   # Reusable confirmation modal (danger/warning/info/success)
+├── PwaInstallPrompt.tsx # PWA install prompt modal (centered, dismissible)
+└── PwaRegister.tsx    # Service worker registration
 lib/                   # Core libraries
 ├── database.ts        # Firestore service with full CRUD
 ├── content.ts         # Content fetching with caching
@@ -131,6 +139,7 @@ The admin panel at `/admin` provides full content management:
 - **Accent**: #F59E0B (amber)
 - **Font**: Plus Jakarta Sans
 - **Layout**: Centered max-w-5xl with fixed navbar
+- **Responsive**: Font sizes scale down on mobile (h1: 48px→28px, body: 18px→16px)
 
 ## Deployment
 

@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from "react";
 import dynamic from "next/dynamic";
+import Navbar from "@/components/Navbar";
 import { useAuth } from "@/context/AuthContext";
 import {
   User,
@@ -13,7 +14,9 @@ import {
   AlertCircle,
   CheckCircle,
   X,
+  ArrowLeft,
 } from "lucide-react";
+import Link from "next/link";
 import { db } from "@/lib/firebase";
 
 const PaymentModal = dynamic(() => import("@/components/PaymentModal"), { ssr: false });
@@ -137,9 +140,16 @@ export default function ProfilePage() {
   };
 
   return (
-    <div className="min-h-screen bg-gray-50 py-8">
-      <div className="max-w-4xl mx-auto px-4">
-        <h1 className="text-3xl font-bold text-gray-900 mb-8">My Profile</h1>
+    <div className="min-h-screen bg-gray-50">
+      <Navbar />
+      <main className="pt-28 pb-12 px-4">
+        <div className="max-w-4xl mx-auto">
+          <div className="flex items-center gap-3 mb-8">
+            <Link href="/" className="text-blue-600 hover:underline">
+              <ArrowLeft size={18} />
+            </Link>
+            <h1 className="text-2xl font-bold text-gray-900">My Profile</h1>
+          </div>
 
         <div className="bg-white rounded-2xl shadow-sm p-6 mb-8">
           <div className="flex items-start justify-between mb-6">
@@ -368,6 +378,7 @@ export default function ProfilePage() {
           )}
         </div>
       </div>
+      </main>
 
       {showPaymentModal && paymentInvoice && user && userData && (
         <PaymentModal
