@@ -422,7 +422,7 @@ function LandingPage({ showFeatures, setShowFeatures, signInWithGoogle, levels }
             <p className="text-lg text-gray-600 text-center mb-12">
               Choose the level that fits your goals
             </p>
-            <div className="grid sm:grid-cols-2 lg:grid-cols-4 gap-6">
+            <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-6">
               {levels.map((level, idx) => (
                 <div key={level.id} className={`relative bg-white p-8 rounded-2xl border-2 ${idx === 0 ? 'border-primary-200 shadow-lg' : 'border-gray-100 shadow-sm hover:shadow-lg hover:border-primary-200'} transition-all`}>
                   {idx === 0 && (

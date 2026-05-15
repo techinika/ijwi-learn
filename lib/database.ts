@@ -457,7 +457,19 @@ class DatabaseService {
   async getAllCertificates(): Promise<Certificate[]> {
     const q = query(this.certificatesCollection, orderBy('completedAt', 'desc'));
     const snapshot = await getDocs(q);
-    return snapshot.docs.map(d => ({ id: d.id, ...d.data() } as Certificate));
+    return snapshot.docs.map(d => {
+      const data = d.data();
+      let completedAt: Date;
+      const raw = data.completedAt;
+      if (raw instanceof Date) {
+        completedAt = raw;
+      } else if (raw && typeof raw === 'object' && 'seconds' in raw) {
+        completedAt = new Date((raw as any).seconds * 1000);
+      } else {
+        completedAt = new Date(raw as any);
+      }
+      return { id: d.id, ...data, completedAt } as Certificate;
+    });
   }
 
   async createCertificate(data: Omit<Certificate, 'id'>): Promise<string> {

@@ -48,9 +48,17 @@ export default function AdminCertificatesPage() {
   const getLevelTitle = (levelId: number) => levels.find(l => l.id === levelId.toString())?.title || `Level ${levelId}`;
   const getUserName = (userId: string) => users.find(u => u.id === userId)?.displayName || 'Unknown User';
 
-  const formatDate = (date: Date) => {
-    const d = date instanceof Date ? date : new Date(date);
-    return d.toLocaleDateString('en-US', { year: 'numeric', month: 'short', day: 'numeric' });
+  const formatDate = (date: any) => {
+    if (!date) return 'N/A';
+    let d: Date;
+    if (date instanceof Date) {
+      d = date;
+    } else if (typeof date === 'object' && date.seconds != null) {
+      d = new Date(date.seconds * 1000);
+    } else {
+      d = new Date(date);
+    }
+    return isNaN(d.getTime()) ? 'N/A' : d.toLocaleDateString('en-US', { year: 'numeric', month: 'short', day: 'numeric' });
   };
 
   const filteredCerts = certificates.filter(cert => {
