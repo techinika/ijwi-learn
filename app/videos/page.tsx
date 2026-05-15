@@ -8,8 +8,6 @@ import { dbService, Video, Level, VideoCategory } from "@/lib/database";
 import {
   ArrowLeft,
   Play,
-  ChevronLeft,
-  X,
   Clock,
   BookOpenCheck,
   ChevronLeft as PrevPage,
@@ -53,7 +51,6 @@ export default function VideosPage() {
   const { userData } = useAuth();
   const [selectedLevel, setSelectedLevel] = useState<string>("All");
   const [selectedCategory, setSelectedCategory] = useState<string>("All");
-  const [playingVideo, setPlayingVideo] = useState<VideoWithLevel | null>(null);
   const [videos, setVideos] = useState<VideoWithLevel[]>([]);
   const [allVideos, setAllVideos] = useState<VideoWithLevel[]>([]);
   const [levels, setLevels] = useState<Level[]>([]);
@@ -186,46 +183,68 @@ export default function VideosPage() {
             </p>
           </div>
 
-          <div className="space-y-4 my-3">
-            <div className="flex gap-4 flex-wrap">
+          <div className="space-y-3 my-3">
+            <div className="flex flex-col sm:flex-row gap-3">
               {levelOptions.length > 1 && (
-                <div className="flex gap-2 flex-wrap" key="level">
-                  <span className="text-sm font-medium text-gray-700 self-center">
-                    Level:
-                  </span>
-                  {levelOptions.map((level) => (
-                    <button
-                      key={level}
-                      onClick={() => setSelectedLevel(level)}
-                      className={`px-5 py-2.5 rounded-full text-sm font-semibold transition ${
-                        selectedLevel === level
-                          ? "bg-primary-600 text-white shadow-md"
-                          : "bg-white text-gray-700 border border-gray-200 hover:border-primary-300 hover:bg-primary-50"
-                      }`}
+                <div className="flex-1">
+                  <div className="sm:hidden">
+                    <select
+                      value={selectedLevel}
+                      onChange={(e) => setSelectedLevel(e.target.value)}
+                      className="w-full px-4 py-2.5 rounded-xl border border-gray-200 text-sm font-medium bg-white"
                     >
-                      {level}
-                    </button>
-                  ))}
+                      {levelOptions.map((level) => (
+                        <option key={level} value={level}>{level}</option>
+                      ))}
+                    </select>
+                  </div>
+                  <div className="hidden sm:flex gap-2 flex-wrap" key="level">
+                    <span className="text-sm font-medium text-gray-700 self-center">Level:</span>
+                    {levelOptions.map((level) => (
+                      <button
+                        key={level}
+                        onClick={() => setSelectedLevel(level)}
+                        className={`px-4 py-2 rounded-full text-sm font-semibold transition ${
+                          selectedLevel === level
+                            ? "bg-primary-600 text-white shadow-md"
+                            : "bg-white text-gray-700 border border-gray-200 hover:border-primary-300 hover:bg-primary-50"
+                        }`}
+                      >
+                        {level}
+                      </button>
+                    ))}
+                  </div>
                 </div>
               )}
               {categoryOptions.length > 1 && (
-                <div className="flex gap-2 flex-wrap">
-                  <span className="text-sm font-medium text-gray-700 self-center">
-                    Category:
-                  </span>
-                  {categoryOptions.map((cat) => (
-                    <button
-                      key={cat}
-                      onClick={() => setSelectedCategory(cat)}
-                      className={`px-5 py-2.5 rounded-full text-sm font-semibold transition ${
-                        selectedCategory === cat
-                          ? "bg-emerald-600 text-white shadow-md"
-                          : "bg-white text-gray-700 border border-gray-200 hover:border-emerald-300 hover:bg-emerald-50"
-                      }`}
+                <div className="flex-1">
+                  <div className="sm:hidden">
+                    <select
+                      value={selectedCategory}
+                      onChange={(e) => setSelectedCategory(e.target.value)}
+                      className="w-full px-4 py-2.5 rounded-xl border border-gray-200 text-sm font-medium bg-white"
                     >
-                      {cat}
-                    </button>
-                  ))}
+                      {categoryOptions.map((cat) => (
+                        <option key={cat} value={cat}>{cat}</option>
+                      ))}
+                    </select>
+                  </div>
+                  <div className="hidden sm:flex gap-2 flex-wrap">
+                    <span className="text-sm font-medium text-gray-700 self-center">Category:</span>
+                    {categoryOptions.map((cat) => (
+                      <button
+                        key={cat}
+                        onClick={() => setSelectedCategory(cat)}
+                        className={`px-4 py-2 rounded-full text-sm font-semibold transition ${
+                          selectedCategory === cat
+                            ? "bg-emerald-600 text-white shadow-md"
+                            : "bg-white text-gray-700 border border-gray-200 hover:border-emerald-300 hover:bg-emerald-50"
+                        }`}
+                      >
+                        {cat}
+                      </button>
+                    ))}
+                  </div>
                 </div>
               )}
             </div>
@@ -236,72 +255,14 @@ export default function VideosPage() {
               <div className="animate-spin w-10 h-10 border-4 border-primary-600 border-t-transparent rounded-full mx-auto mb-4"></div>
               <p className="text-gray-500">Loading videos...</p>
             </div>
-          ) : playingVideo ? (
-            <div className="bg-white rounded-2xl p-6 shadow-lg border border-gray-100">
-              <div className="flex justify-between items-center mb-6">
-                <button
-                  onClick={() => setPlayingVideo(null)}
-                  className="text-primary-600 hover:underline flex items-center gap-2 text-sm font-medium"
-                >
-                  <ChevronLeft size={18} />
-                  Back to Videos
-                </button>
-                <button
-                  onClick={() => setPlayingVideo(null)}
-                  className="text-gray-400 hover:text-gray-600 p-2 hover:bg-gray-100 rounded-lg"
-                >
-                  <X size={24} />
-                </button>
-              </div>
-              <div className="aspect-video bg-gradient-to-br from-gray-800 to-gray-900 rounded-xl mb-6 overflow-hidden">
-                {playingVideo.videoUrl ? (
-                  <iframe
-                    src={getYouTubeEmbedUrl(playingVideo.videoUrl) || ""}
-                    className="w-full h-full"
-                    allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
-                    allowFullScreen
-                  />
-                ) : (
-                  <div className="flex items-center justify-center h-full">
-                    <div className="text-center text-white">
-                      <div className="w-20 h-20 bg-white/20 rounded-full flex items-center justify-center mx-auto mb-4 backdrop-blur-sm">
-                        <Play size={48} className="ml-1" />
-                      </div>
-                      <div className="text-2xl font-bold">
-                        {playingVideo.title}
-                      </div>
-                      <div className="text-gray-300 flex items-center justify-center gap-2 mt-2">
-                        <Clock size={16} />
-                        {formatDuration(playingVideo.duration)}
-                      </div>
-                    </div>
-                  </div>
-                )}
-              </div>
-              <h2 className="text-xl font-bold text-gray-900 mb-3">
-                {playingVideo.title}
-              </h2>
-              <p className="text-gray-600 mb-4">{playingVideo.description}</p>
-              <div className="flex items-center gap-3">
-                <span
-                  className={`px-3 py-1.5 rounded-full text-xs font-semibold ${playingVideo.levelBgColor} ${playingVideo.levelTextColor}`}
-                >
-                  {playingVideo.levelTitle}
-                </span>
-                <span className="text-gray-500 text-sm flex items-center gap-1">
-                  <Clock size={14} />
-                  {formatDuration(playingVideo.duration)}
-                </span>
-              </div>
-            </div>
           ) : paginatedVideos.length > 0 ? (
             <>
               <div className="grid sm:grid-cols-2 gap-6">
                 {paginatedVideos.map((video) => (
-                  <button
+                  <Link
                     key={video.id}
-                    onClick={() => setPlayingVideo(video)}
-                    className="bg-white rounded-xl p-5 text-left hover:shadow-lg border-2 border-gray-100 hover:border-primary-200 transition-all group"
+                    href={`/videos/${video.id}`}
+                    className="block bg-white rounded-xl p-5 text-left hover:shadow-lg border-2 border-gray-100 hover:border-primary-200 transition-all group"
                   >
                     <div className="aspect-video bg-gradient-to-br from-primary-100 to-primary-50 rounded-lg flex items-center justify-center mb-4 group-hover:scale-[1.02] transition-transform relative overflow-hidden">
                       {video.thumbnailUrl ? (
@@ -338,7 +299,7 @@ export default function VideosPage() {
                         {formatDuration(video.duration)}
                       </span>
                     </div>
-                  </button>
+                  </Link>
                 ))}
               </div>
 

@@ -100,9 +100,7 @@ export default function Navbar() {
           <div className="flex items-center gap-3">
             {user ? (
               <>
-                <div className="hidden md:block">
-                  <GlobalSearch />
-                </div>
+                <GlobalSearch />
 
                 <Link
                   href="/chat"

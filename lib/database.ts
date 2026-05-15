@@ -173,6 +173,17 @@ export interface PointHistory {
   createdAt: Date;
 }
 
+export interface VideoComment {
+  id: string;
+  videoId: string;
+  userId: string;
+  userName: string;
+  userPhotoURL?: string;
+  content: string;
+  parentId: string | null;
+  createdAt: Date;
+}
+
 export interface TestAttempt {
   id: string;
   userId: string;
@@ -258,6 +269,7 @@ class DatabaseService {
   private usersCollection = collection(db, 'users');
   private certificatesCollection = collection(db, 'certificates');
   private videosCollection = collection(db, 'videos');
+  private videoCommentsCollection = collection(db, 'videoComments');
   private pointHistoryCollection = collection(db, 'pointHistory');
   private categoriesCollection = collection(db, 'categories');
   private difficultiesCollection = collection(db, 'difficulties');
@@ -540,6 +552,25 @@ class DatabaseService {
 
   async deleteVideo(id: string): Promise<void> {
     await deleteDoc(doc(this.videosCollection, id));
+  }
+
+  async getVideoComments(videoId: string): Promise<VideoComment[]> {
+    const q = query(
+      this.videoCommentsCollection,
+      where('videoId', '==', videoId),
+      orderBy('createdAt', 'asc')
+    );
+    const snapshot = await getDocs(q);
+    return snapshot.docs.map(doc => ({
+      id: doc.id,
+      ...doc.data(),
+      createdAt: (doc.data().createdAt as Timestamp).toDate(),
+    })) as VideoComment[];
+  }
+
+  async addVideoComment(data: Omit<VideoComment, 'id'>): Promise<string> {
+    const docRef = await addDoc(this.videoCommentsCollection, data);
+    return docRef.id;
   }
 
   // POINT HISTORY - Efficient way to track and calculate points

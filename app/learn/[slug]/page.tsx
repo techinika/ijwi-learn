@@ -212,9 +212,21 @@ export default function LevelPage({ params }: { params: Promise<{ slug: string }
                 <div className="mb-6">
                   <div className="flex items-center gap-2 mb-2">
                     <Filter size={16} className="text-gray-400" />
-                    <span className="text-sm font-medium text-gray-600">Filter by Difficulty:</span>
+                    <span className="text-sm font-medium text-gray-600">Difficulty:</span>
                   </div>
-                  <div className="flex gap-2 flex-wrap">
+                  <div className="sm:hidden">
+                    <select
+                      value={activeDifficulty || ''}
+                      onChange={(e) => setActiveDifficulty(e.target.value)}
+                      className="w-full px-4 py-2.5 rounded-xl border border-gray-200 text-sm font-medium bg-white"
+                    >
+                      <option value="">All</option>
+                      {difficulties.map(d => (
+                        <option key={d.id} value={d.id}>{d.name}</option>
+                      ))}
+                    </select>
+                  </div>
+                  <div className="hidden sm:flex gap-2 flex-wrap">
                     <button
                       onClick={() => setActiveDifficulty('')}
                       className={`px-4 py-2 rounded-full text-sm font-medium transition ${
@@ -305,16 +317,22 @@ export default function LevelPage({ params }: { params: Promise<{ slug: string }
                     </div>
                   </div>
 
-                  <div className="flex justify-center gap-2 mt-4">
+                  <div className="flex justify-center gap-2 mt-4 flex-wrap">
                     {Array.from({ length: Math.min(items.length, 10) }).map((_, i) => (
                       <button
                         key={i}
                         onClick={() => setCurrentIndex(i)}
-                        className={`w-2.5 h-2.5 rounded-full transition-colors ${
+                        className={`w-4 h-4 sm:w-2.5 sm:h-2.5 rounded-full transition-colors ${
                           i === currentIndex ? 'bg-primary-600' : 'bg-gray-300'
                         }`}
+                        aria-label={`Go to word ${i + 1}`}
                       />
                     ))}
+                    {items.length > 10 && (
+                      <span className="text-xs text-gray-400 self-center ml-1">
+                        +{items.length - 10} more
+                      </span>
+                    )}
                   </div>
                 </div>
               )}

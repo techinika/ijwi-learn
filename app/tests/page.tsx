@@ -336,19 +336,32 @@ export default function TestsPage() {
             <div className="flex items-center justify-between mb-6">
               <div className="flex gap-2 flex-wrap">
                 <span className="text-sm font-medium text-gray-700 self-center">Filter:</span>
-                {levelOptions.map(level => (
-                  <button
-                    key={level}
-                    onClick={() => setFilterLevel(level)}
-                    className={`px-4 py-2 rounded-full text-sm font-medium transition ${
-                      filterLevel === level
-                        ? 'bg-primary-600 text-white'
-                        : 'bg-white text-gray-700 border border-gray-200 hover:bg-gray-50'
-                    }`}
+                <div className="sm:hidden w-full">
+                  <select
+                    value={filterLevel}
+                    onChange={(e) => setFilterLevel(e.target.value)}
+                    className="w-full px-4 py-2 rounded-xl border border-gray-200 text-sm font-medium bg-white"
                   >
-                    {level === 'all' ? 'All Levels' : level}
-                  </button>
-                ))}
+                    {levelOptions.map(level => (
+                      <option key={level} value={level}>{level === 'all' ? 'All Levels' : level}</option>
+                    ))}
+                  </select>
+                </div>
+                <div className="hidden sm:flex gap-2 flex-wrap">
+                  {levelOptions.map(level => (
+                    <button
+                      key={level}
+                      onClick={() => setFilterLevel(level)}
+                      className={`px-4 py-2 rounded-full text-sm font-medium transition ${
+                        filterLevel === level
+                          ? 'bg-primary-600 text-white'
+                          : 'bg-white text-gray-700 border border-gray-200 hover:bg-gray-50'
+                      }`}
+                    >
+                      {level === 'all' ? 'All Levels' : level}
+                    </button>
+                  ))}
+                </div>
               </div>
               {testAttempts.length > 0 && (
                 <button

@@ -152,16 +152,16 @@ export default function CertificatesPage() {
                     const LevelIcon = levelInfo.icon;
                     return (
                       <div key={cert.id} className="bg-white p-5 rounded-xl shadow-sm border border-gray-200">
-                        <div className="flex justify-between items-center">
+                        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
                           <div className="flex items-center gap-4">
-                            <div className={`w-12 h-12 ${levelInfo.color} rounded-xl flex items-center justify-center text-white`}>
+                            <div className={`w-12 h-12 shrink-0 ${levelInfo.color} rounded-xl flex items-center justify-center text-white`}>
                               <LevelIcon size={24} />
                             </div>
-                            <div>
+                            <div className="min-w-0">
                               <h3 className="font-semibold text-gray-900">{cert.levelName} Certificate</h3>
-                              <div className="flex items-center gap-3 mt-1">
+                              <div className="flex flex-col sm:flex-row sm:items-center gap-1 sm:gap-3 mt-1">
                                 <span className="text-gray-500 text-sm">
-                                  Completed: {formatDate(cert.completedAt)}
+                                  {formatDate(cert.completedAt)}
                                 </span>
                                 <span className="text-emerald-600 font-medium text-sm">
                                   Score: {cert.score}%
@@ -169,8 +169,8 @@ export default function CertificatesPage() {
                               </div>
                             </div>
                           </div>
-                          <div className="flex items-center gap-2">
-                            <span className="flex items-center gap-1 text-emerald-600 text-sm font-medium">
+                          <div className="flex items-center gap-2 self-end sm:self-auto">
+                            <span className="hidden sm:flex items-center gap-1 text-emerald-600 text-sm font-medium">
                               <CheckCircle size={16} />
                               Verified
                             </span>
@@ -180,6 +180,7 @@ export default function CertificatesPage() {
                                 setShowPreview(true);
                               }}
                               className="p-2 text-gray-500 hover:text-primary-600 hover:bg-primary-50 rounded-lg"
+                              title="Preview"
                             >
                               <Eye size={20} />
                             </button>
@@ -188,7 +189,7 @@ export default function CertificatesPage() {
                               className="flex items-center gap-2 px-4 py-2 bg-primary-600 text-white rounded-lg hover:bg-primary-700 text-sm font-medium"
                             >
                               <Download size={16} />
-                              Download
+                              <span className="hidden sm:inline">Download</span>
                             </button>
                           </div>
                         </div>

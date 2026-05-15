@@ -111,11 +111,22 @@ export default function LeaderboardPage() {
           </div>
 
           <div className="grid grid-cols-4 gap-3 mb-8">
+            <div className="sm:hidden col-span-4 mb-1">
+              <select
+                value={selectedCategory}
+                onChange={(e) => setSelectedCategory(e.target.value)}
+                className="w-full px-4 py-2.5 rounded-xl border border-gray-200 text-sm font-medium bg-white"
+              >
+                {categories.map((cat) => (
+                  <option key={cat.id} value={cat.id}>{cat.title}</option>
+                ))}
+              </select>
+            </div>
             {categories.map((cat) => (
               <button
                 key={cat.id}
                 onClick={() => setSelectedCategory(cat.id)}
-                className={`flex items-center justify-center gap-2 p-4 rounded-xl transition ${
+                className={`hidden sm:flex items-center justify-center gap-2 p-4 rounded-xl transition ${
                   selectedCategory === cat.id
                     ? 'bg-primary-600 text-white'
                     : 'bg-white text-gray-700 border border-gray-200 hover:border-primary-300'
