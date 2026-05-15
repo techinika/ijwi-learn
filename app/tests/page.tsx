@@ -4,8 +4,8 @@ import { useState, useEffect } from 'react';
 import Link from 'next/link';
 import Navbar from '@/components/Navbar';
 import { useAuth } from '@/context/AuthContext';
-import { dbService, Level, Test, TestQuestion, PointHistory } from '@/lib/database';
-import { ArrowLeft, Award, CheckCircle, RefreshCw, Target, TrendingUp, Play, ChevronLeft as PrevPage, ChevronRight as NextPage } from 'lucide-react';
+import { dbService, Level, Test, TestQuestion, PointHistory, TestAttempt } from '@/lib/database';
+import { ArrowLeft, Award, CheckCircle, RefreshCw, Target, TrendingUp, Play, ChevronLeft as PrevPage, ChevronRight as NextPage, BarChart3, History, X } from 'lucide-react';
 import { Loading, FetchLoading } from '@/app/AppLoading';
 
 const TESTS_PER_PAGE = 6;
@@ -25,6 +25,8 @@ export default function TestsPage() {
   const [filterLevel, setFilterLevel] = useState<string>('all');
   const [currentPage, setCurrentPage] = useState(1);
   const [pointHistory, setPointHistory] = useState<PointHistory[]>([]);
+  const [testAttempts, setTestAttempts] = useState<TestAttempt[]>([]);
+  const [showHistory, setShowHistory] = useState(false);
 
   useEffect(() => {
     loadData();
@@ -32,14 +34,16 @@ export default function TestsPage() {
 
   const loadData = async () => {
     try {
-      const [dbLevels, dbTests, history] = await Promise.all([
+      const [dbLevels, dbTests, history, attempts] = await Promise.all([
         dbService.getLevels(),
         dbService.getTests(),
         user ? dbService.getPointHistory(user.uid) : Promise.resolve([]),
+        user ? dbService.getTestAttempts(user.uid) : Promise.resolve([]),
       ]);
       setLevels(dbLevels);
       setTests(dbTests);
       setPointHistory(history);
+      setTestAttempts(attempts);
     } catch (e) {
       console.error('Failed to load tests', e);
     } finally {
@@ -80,8 +84,25 @@ export default function TestsPage() {
       setCurrentQuestion(currentQuestion + 1);
     } else {
       const score = calculateScore();
-      const passed = score / testQuestions.length >= 0.8;
+      const percentage = Math.round((score / testQuestions.length) * 100);
+      const passed = percentage >= 80;
       setShowResult(true);
+
+      if (user && selectedLevel) {
+        const level = levels.find(l => l.id === selectedLevel);
+        await dbService.createTestAttempt({
+          userId: user.uid,
+          testId: selectedLevel,
+          levelId: selectedLevel,
+          levelTitle: level?.title || 'Unknown',
+          score,
+          totalQuestions: testQuestions.length,
+          percentage,
+          passed,
+          answers: newAnswers,
+          createdAt: new Date(),
+        });
+      }
 
       await incrementTestsCompleted();
 
@@ -310,21 +331,32 @@ export default function TestsPage() {
           </div>
 
           <FetchLoading isLoading={loading} fallback={<Loading text="Loading tests..." />}>
-            <div className="flex gap-2 flex-wrap mb-6">
-              <span className="text-sm font-medium text-gray-700 self-center">Filter:</span>
-              {levelOptions.map(level => (
+            <div className="flex items-center justify-between mb-6">
+              <div className="flex gap-2 flex-wrap">
+                <span className="text-sm font-medium text-gray-700 self-center">Filter:</span>
+                {levelOptions.map(level => (
+                  <button
+                    key={level}
+                    onClick={() => setFilterLevel(level)}
+                    className={`px-4 py-2 rounded-full text-sm font-medium transition ${
+                      filterLevel === level
+                        ? 'bg-primary-600 text-white'
+                        : 'bg-white text-gray-700 border border-gray-200 hover:bg-gray-50'
+                    }`}
+                  >
+                    {level === 'all' ? 'All Levels' : level}
+                  </button>
+                ))}
+              </div>
+              {testAttempts.length > 0 && (
                 <button
-                  key={level}
-                  onClick={() => setFilterLevel(level)}
-                  className={`px-4 py-2 rounded-full text-sm font-medium transition ${
-                    filterLevel === level
-                      ? 'bg-primary-600 text-white'
-                      : 'bg-white text-gray-700 border border-gray-200 hover:bg-gray-50'
-                  }`}
+                  onClick={() => setShowHistory(true)}
+                  className="flex items-center gap-2 px-4 py-2 text-sm font-medium text-primary-600 bg-primary-50 rounded-lg hover:bg-primary-100 transition"
                 >
-                  {level === 'all' ? 'All Levels' : level}
+                  <History size={16} />
+                  View History
                 </button>
-              ))}
+              )}
             </div>
 
             <div className="grid sm:grid-cols-2 gap-5">
@@ -392,6 +424,106 @@ export default function TestsPage() {
           </FetchLoading>
         </div>
       </main>
+
+      {showHistory && (
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
+          <div className="bg-white rounded-2xl shadow-xl w-full max-w-2xl max-h-[90vh] overflow-y-auto">
+            <div className="flex items-center justify-between p-6 border-b border-gray-200">
+              <div className="flex items-center gap-3">
+                <BarChart3 size={20} className="text-primary-600" />
+                <h2 className="text-lg font-bold text-gray-900">Test History & Improvement</h2>
+              </div>
+              <button onClick={() => setShowHistory(false)} className="p-1 text-gray-400 hover:text-gray-600 rounded-lg hover:bg-gray-100">
+                <X size={20} />
+              </button>
+            </div>
+            <div className="p-6 space-y-6">
+              {testAttempts.length === 0 ? (
+                <p className="text-gray-500 text-center py-8">No test attempts yet.</p>
+              ) : (
+                <>
+                  <div className="space-y-2">
+                    <h3 className="text-sm font-medium text-gray-700">Overall Stats</h3>
+                    <div className="grid grid-cols-3 gap-4">
+                      <div className="bg-gray-50 rounded-xl p-3 text-center">
+                        <div className="text-xl font-bold text-gray-900">{testAttempts.length}</div>
+                        <div className="text-xs text-gray-500">Total Attempts</div>
+                      </div>
+                      <div className="bg-gray-50 rounded-xl p-3 text-center">
+                        <div className="text-xl font-bold text-emerald-600">{testAttempts.filter(a => a.passed).length}</div>
+                        <div className="text-xs text-gray-500">Passed</div>
+                      </div>
+                      <div className="bg-gray-50 rounded-xl p-3 text-center">
+                        <div className="text-xl font-bold text-gray-900">
+                          {testAttempts.length > 0 ? Math.round(testAttempts.reduce((s, a) => s + a.percentage, 0) / testAttempts.length) : 0}%
+                        </div>
+                        <div className="text-xs text-gray-500">Avg Score</div>
+                      </div>
+                    </div>
+                  </div>
+
+                  <div>
+                    <h3 className="text-sm font-medium text-gray-700 mb-3">Score Trend</h3>
+                    <div className="bg-white border border-gray-200 rounded-xl p-4">
+                      <div className="flex items-end gap-1.5 h-32">
+                        {[...testAttempts].reverse().slice(-20).map((attempt, i) => (
+                          <div key={i} className="flex-1 flex flex-col items-center gap-1">
+                            <div
+                              className={`w-full rounded-t ${
+                                attempt.passed ? 'bg-emerald-500' : 'bg-red-400'
+                              } transition-all hover:opacity-80 min-h-[4px]`}
+                              style={{ height: `${attempt.percentage}%` }}
+                              title={`${attempt.levelTitle}: ${attempt.percentage}% (${attempt.score}/${attempt.totalQuestions})`}
+                            />
+                            <div className="text-[10px] text-gray-400 -rotate-45 origin-left whitespace-nowrap">
+                              {i === 0 || i === [...testAttempts].reverse().slice(-20).length - 1 || i % 5 === 0
+                                ? new Date(attempt.createdAt).toLocaleDateString().slice(0, 5)
+                                : ''}
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  </div>
+
+                  <div>
+                    <h3 className="text-sm font-medium text-gray-700 mb-3">Attempt History</h3>
+                    <div className="space-y-2 max-h-64 overflow-y-auto">
+                      {testAttempts.map((attempt) => (
+                        <div key={attempt.id} className="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
+                          <div className="flex items-center gap-3">
+                            <div className={`w-8 h-8 rounded-full flex items-center justify-center text-xs font-bold ${
+                              attempt.passed ? 'bg-emerald-100 text-emerald-700' : 'bg-red-100 text-red-700'
+                            }`}>
+                              {attempt.percentage}%
+                            </div>
+                            <div>
+                              <div className="text-sm font-medium text-gray-900">{attempt.levelTitle}</div>
+                              <div className="text-xs text-gray-500">
+                                {attempt.score}/{attempt.totalQuestions} correct
+                                {' · '}
+                                {new Date(attempt.createdAt).toLocaleDateString()}
+                              </div>
+                            </div>
+                          </div>
+                          <span className={`text-xs font-medium px-2 py-0.5 rounded-full ${
+                            attempt.passed ? 'bg-emerald-100 text-emerald-700' : 'bg-red-100 text-red-700'
+                          }`}>
+                            {attempt.passed ? 'Passed' : 'Failed'}
+                          </span>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                </>
+              )}
+            </div>
+            <div className="flex items-center justify-end p-6 border-t border-gray-200">
+              <button onClick={() => setShowHistory(false)} className="px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-100 rounded-lg transition-colors">Close</button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

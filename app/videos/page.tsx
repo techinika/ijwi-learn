@@ -119,9 +119,26 @@ export default function VideosPage() {
       })
       .map((l) => l.title),
   ];
-  const categoryOptions = ["All", ...categories.map((c) => c.name)];
+
+  const filteredCategories = selectedLevel === "All"
+    ? categories
+    : categories.filter(c => {
+        const level = levels.find(l => l.title === selectedLevel);
+        return level ? (c.levelIds || []).includes(level.id) : true;
+      });
+  const categoryOptions = ["All", ...filteredCategories.map((c) => c.name)];
 
   useEffect(() => {
+    if (selectedLevel !== "All") {
+      const level = levels.find(l => l.title === selectedLevel);
+      const validCategories = level
+        ? categories.filter(c => (c.levelIds || []).includes(level.id))
+        : categories;
+      if (selectedCategory !== "All" && !validCategories.some(c => c.name === selectedCategory)) {
+        setSelectedCategory("All");
+      }
+    }
+
     const purchasedTitleSet = new Set(
       levels
         .filter((_, idx) => purchasedLevelIds.includes(idx + 1))

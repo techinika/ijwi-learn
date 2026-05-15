@@ -119,7 +119,7 @@ export default function Home() {
   }
 
   if (!user || !userData) {
-    return <LandingPage showFeatures={showFeatures} setShowFeatures={setShowFeatures} signInWithGoogle={signInWithGoogle} />;
+    return <LandingPage showFeatures={showFeatures} setShowFeatures={setShowFeatures} signInWithGoogle={signInWithGoogle} levels={levels} />;
   }
 
   const purchasedLevels = userData?.purchasedLevels || [];
@@ -292,10 +292,11 @@ export default function Home() {
   );
 }
 
-function LandingPage({ showFeatures, setShowFeatures, signInWithGoogle }: { 
+function LandingPage({ showFeatures, setShowFeatures, signInWithGoogle, levels }: { 
   showFeatures: boolean; 
   setShowFeatures: (v: boolean) => void; 
   signInWithGoogle: () => void;
+  levels: LevelData[];
 }) {
   return (
     <div className="min-h-screen bg-gray-50">
@@ -422,7 +423,7 @@ function LandingPage({ showFeatures, setShowFeatures, signInWithGoogle }: {
               Choose the level that fits your goals
             </p>
             <div className="grid sm:grid-cols-2 lg:grid-cols-4 gap-6">
-              {defaultLevels.map((level, idx) => (
+              {levels.map((level, idx) => (
                 <div key={level.id} className={`relative bg-white p-8 rounded-2xl border-2 ${idx === 0 ? 'border-primary-200 shadow-lg' : 'border-gray-100 shadow-sm hover:shadow-lg hover:border-primary-200'} transition-all`}>
                   {idx === 0 && (
                     <div className="absolute -top-3 left-1/2 -translate-x-1/2 bg-primary-600 text-white px-4 py-1 rounded-full text-sm font-medium">

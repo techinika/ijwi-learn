@@ -13,7 +13,7 @@ export default function CategoriesPage() {
   const [loading, setLoading] = useState(true);
   const [showModal, setShowModal] = useState(false);
   const [editing, setEditing] = useState<Category | null>(null);
-  const [form, setForm] = useState({ name: '', nameKinyarwanda: '', slug: '', levelId: '', isActive: true });
+  const [form, setForm] = useState({ name: '', nameKinyarwanda: '', slug: '', levelIds: [] as string[], isActive: true });
 
   useEffect(() => {
     loadAll();
@@ -37,20 +37,20 @@ export default function CategoriesPage() {
   const getLevelTitle = (id: string) => levels.find(l => l.id === id)?.title || id;
 
   const openAdd = () => {
-    setForm({ name: '', nameKinyarwanda: '', slug: '', levelId: '', isActive: true });
+    setForm({ name: '', nameKinyarwanda: '', slug: '', levelIds: [], isActive: true });
     setEditing(null);
     setShowModal(true);
   };
 
   const openEdit = (item: Category) => {
-    setForm({ name: item.name, nameKinyarwanda: item.nameKinyarwanda, slug: item.slug, levelId: item.levelId, isActive: item.isActive });
+    setForm({ name: item.name, nameKinyarwanda: item.nameKinyarwanda, slug: item.slug, levelIds: item.levelIds || [], isActive: item.isActive });
     setEditing(item);
     setShowModal(true);
   };
 
   const handleSave = async () => {
-    if (!form.name || !form.nameKinyarwanda || !form.slug || !form.levelId) return;
-    const data = { name: form.name, nameKinyarwanda: form.nameKinyarwanda, slug: form.slug, levelId: form.levelId, isActive: form.isActive };
+    if (!form.name || !form.nameKinyarwanda || !form.slug || form.levelIds.length === 0) return;
+    const data = { name: form.name, nameKinyarwanda: form.nameKinyarwanda, slug: form.slug, levelIds: form.levelIds, isActive: form.isActive };
     try {
       if (editing) {
         await dbService.updateCategory(editing.id, data);
@@ -131,7 +131,15 @@ export default function CategoriesPage() {
                       <td className="px-4 py-3 font-medium text-gray-900">{item.name}</td>
                       <td className="px-4 py-3 text-gray-700">{item.nameKinyarwanda}</td>
                       <td className="px-4 py-3 text-gray-500 font-mono text-xs">{item.slug}</td>
-                      <td className="px-4 py-3">{getLevelTitle(item.levelId)}</td>
+                      <td className="px-4 py-3">
+                        <div className="flex flex-wrap gap-1">
+                          {(item.levelIds || []).map(id => (
+                            <span key={id} className="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-primary-50 text-primary-700">
+                              {getLevelTitle(id)}
+                            </span>
+                          ))}
+                        </div>
+                      </td>
                       <td className="px-4 py-3 text-center">
                         <span className={`inline-flex items-center px-2.5 py-1 rounded-full text-xs font-medium ${item.isActive ? 'bg-green-100 text-green-700' : 'bg-gray-100 text-gray-500'}`}>
                           {item.isActive ? 'Active' : 'Inactive'}
@@ -179,11 +187,27 @@ export default function CategoriesPage() {
                 <input type="text" value={form.slug} onChange={e => setForm(p => ({ ...p, slug: e.target.value }))} className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary-600" placeholder="e.g. animals" />
               </div>
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">Level *</label>
-                <select value={form.levelId} onChange={e => setForm(p => ({ ...p, levelId: e.target.value }))} className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary-600">
-                  <option value="">Select level</option>
-                  {levels.map(l => <option key={l.id} value={l.id}>{l.title}</option>)}
-                </select>
+                <label className="block text-sm font-medium text-gray-700 mb-1">Levels *</label>
+                <div className="space-y-2 max-h-48 overflow-y-auto border border-gray-300 rounded-lg p-3">
+                  {levels.map(l => (
+                    <label key={l.id} className="flex items-center gap-2 cursor-pointer">
+                      <input
+                        type="checkbox"
+                        checked={form.levelIds.includes(l.id)}
+                        onChange={e => {
+                          if (e.target.checked) {
+                            setForm(p => ({ ...p, levelIds: [...p.levelIds, l.id] }));
+                          } else {
+                            setForm(p => ({ ...p, levelIds: p.levelIds.filter(id => id !== l.id) }));
+                          }
+                        }}
+                        className="w-4 h-4 text-primary-600 border-gray-300 rounded focus:ring-primary-600"
+                      />
+                      <span className="text-sm text-gray-700">{l.title}</span>
+                    </label>
+                  ))}
+                  {levels.length === 0 && <p className="text-sm text-gray-400">No levels available</p>}
+                </div>
               </div>
               <div className="flex items-center gap-3">
                 <input type="checkbox" id="isActive" checked={form.isActive} onChange={e => setForm(p => ({ ...p, isActive: e.target.checked }))} className="w-4 h-4 text-primary-600 border-gray-300 rounded focus:ring-primary-600" />

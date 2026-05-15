@@ -3,12 +3,13 @@
 import { useState, useEffect } from 'react';
 import Navbar from '@/components/Navbar';
 import { useAuth } from '@/context/AuthContext';
-import { dbService, VideoCategory } from '@/lib/database';
+import { dbService, VideoCategory, Level } from '@/lib/database';
 import { ArrowLeft, Plus, Edit, Trash2, Save, X, Folder, GripVertical } from 'lucide-react';
 
 interface CategoryFormData {
   name: string;
   slug: string;
+  levelIds: string[];
   order: number;
   isActive: boolean;
 }
@@ -16,6 +17,7 @@ interface CategoryFormData {
 const defaultFormData: CategoryFormData = {
   name: '',
   slug: '',
+  levelIds: [],
   order: 0,
   isActive: true,
 };
@@ -30,6 +32,7 @@ function generateSlug(name: string): string {
 export default function AdminVideoCategoriesPage() {
   const { isAdmin, isTeacher } = useAuth();
   const [categories, setCategories] = useState<VideoCategory[]>([]);
+  const [levels, setLevels] = useState<Level[]>([]);
   const [loading, setLoading] = useState(true);
   const [showForm, setShowForm] = useState(false);
   const [editingCategory, setEditingCategory] = useState<VideoCategory | null>(null);
@@ -37,18 +40,25 @@ export default function AdminVideoCategoriesPage() {
   const [saving, setSaving] = useState(false);
 
   useEffect(() => {
-    loadCategories();
+    loadAll();
   }, []);
 
-  const loadCategories = async () => {
+  const loadAll = async () => {
+    setLoading(true);
     try {
-      const data = await dbService.getVideoCategories();
-      setCategories(data);
+      const [cats, levs] = await Promise.all([
+        dbService.getVideoCategories(),
+        dbService.getLevels(),
+      ]);
+      setCategories(cats);
+      setLevels(levs);
     } catch (e) {
-      console.error('Error loading categories:', e);
+      console.error('Error loading data:', e);
     }
     setLoading(false);
   };
+
+  const getLevelTitle = (id: string) => levels.find(l => l.id === id)?.title || id;
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -65,7 +75,7 @@ export default function AdminVideoCategoriesPage() {
       } else {
         await dbService.createVideoCategory({ ...formData, slug });
       }
-      await loadCategories();
+      await loadAll();
       resetForm();
     } catch (e) {
       console.error('Error saving category:', e);
@@ -79,6 +89,7 @@ export default function AdminVideoCategoriesPage() {
     setFormData({
       name: category.name,
       slug: category.slug,
+      levelIds: category.levelIds || [],
       order: category.order,
       isActive: category.isActive,
     });
@@ -89,7 +100,7 @@ export default function AdminVideoCategoriesPage() {
     if (!confirm('Are you sure you want to delete this category?')) return;
     try {
       await dbService.deleteVideoCategory(categoryId);
-      await loadCategories();
+      await loadAll();
     } catch (e) {
       console.error('Error deleting category:', e);
     }
@@ -98,7 +109,7 @@ export default function AdminVideoCategoriesPage() {
   const handleToggleActive = async (category: VideoCategory) => {
     try {
       await dbService.updateVideoCategory(category.id, { isActive: !category.isActive });
-      await loadCategories();
+      await loadAll();
     } catch (e) {
       console.error('Error toggling category status:', e);
     }
@@ -186,6 +197,29 @@ export default function AdminVideoCategoriesPage() {
                     />
                   </div>
                   <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">Levels</label>
+                    <div className="space-y-2 max-h-48 overflow-y-auto border border-gray-300 rounded-xl p-3">
+                      {levels.map(l => (
+                        <label key={l.id} className="flex items-center gap-2 cursor-pointer">
+                          <input
+                            type="checkbox"
+                            checked={formData.levelIds.includes(l.id)}
+                            onChange={e => {
+                              if (e.target.checked) {
+                                setFormData(prev => ({ ...prev, levelIds: [...prev.levelIds, l.id] }));
+                              } else {
+                                setFormData(prev => ({ ...prev, levelIds: prev.levelIds.filter(id => id !== l.id) }));
+                              }
+                            }}
+                            className="w-4 h-4 text-primary-600 border-gray-300 rounded focus:ring-primary-600"
+                          />
+                          <span className="text-sm text-gray-700">{l.title}</span>
+                        </label>
+                      ))}
+                      {levels.length === 0 && <p className="text-sm text-gray-400">No levels available</p>}
+                    </div>
+                  </div>
+                  <div>
                     <label className="block text-sm font-medium text-gray-700 mb-2">Display Order</label>
                     <input
                       type="number"
@@ -255,59 +289,69 @@ export default function AdminVideoCategoriesPage() {
                 </div>
               ) : (
                 <div className="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden">
-                  <table className="w-full">
-                    <thead className="bg-gray-50 border-b border-gray-200">
-                      <tr>
-                        <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Order</th>
-                        <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Name</th>
-                        <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Slug</th>
-                        <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Status</th>
-                        <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase">Actions</th>
-                      </tr>
-                    </thead>
-                    <tbody className="divide-y divide-gray-200">
-                      {categories.sort((a, b) => a.order - b.order).map((category) => (
-                        <tr key={category.id} className="hover:bg-gray-50">
-                          <td className="px-6 py-4 text-sm text-gray-500">
-                            <div className="flex items-center gap-2">
-                              <GripVertical size={16} className="text-gray-400 cursor-move" />
-                              {category.order}
-                            </div>
-                          </td>
-                          <td className="px-6 py-4 text-sm font-medium text-gray-900">{category.name}</td>
-                          <td className="px-6 py-4 text-sm text-gray-500">{category.slug}</td>
-                          <td className="px-6 py-4">
-                            <button
-                              onClick={() => handleToggleActive(category)}
-                              className={`px-2.5 py-1 rounded-full text-xs font-medium ${
-                                category.isActive
-                                  ? 'bg-emerald-100 text-emerald-700'
-                                  : 'bg-gray-100 text-gray-500'
-                              }`}
-                            >
-                              {category.isActive ? 'Active' : 'Inactive'}
-                            </button>
-                          </td>
-                          <td className="px-6 py-4 text-right">
-                            <div className="flex items-center justify-end gap-1">
-                              <button
-                                onClick={() => handleEdit(category)}
-                                className="p-2 text-gray-500 hover:text-primary-600 hover:bg-primary-50 rounded-lg"
-                              >
-                                <Edit size={18} />
-                              </button>
-                              <button
-                                onClick={() => handleDelete(category.id)}
-                                className="p-2 text-gray-500 hover:text-red-600 hover:bg-red-50 rounded-lg"
-                              >
-                                <Trash2 size={18} />
-                              </button>
-                            </div>
-                          </td>
-                        </tr>
-                      ))}
-                    </tbody>
-                  </table>
+                      <table className="w-full">
+                        <thead className="bg-gray-50 border-b border-gray-200">
+                          <tr>
+                            <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Order</th>
+                            <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Name</th>
+                            <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Slug</th>
+                            <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Levels</th>
+                            <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Status</th>
+                            <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase">Actions</th>
+                          </tr>
+                        </thead>
+                        <tbody className="divide-y divide-gray-200">
+                          {categories.sort((a, b) => a.order - b.order).map((category) => (
+                            <tr key={category.id} className="hover:bg-gray-50">
+                              <td className="px-6 py-4 text-sm text-gray-500">
+                                <div className="flex items-center gap-2">
+                                  <GripVertical size={16} className="text-gray-400 cursor-move" />
+                                  {category.order}
+                                </div>
+                              </td>
+                              <td className="px-6 py-4 text-sm font-medium text-gray-900">{category.name}</td>
+                              <td className="px-6 py-4 text-sm text-gray-500">{category.slug}</td>
+                              <td className="px-6 py-4">
+                                <div className="flex flex-wrap gap-1">
+                                  {(category.levelIds || []).map(id => (
+                                    <span key={id} className="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-primary-50 text-primary-700">
+                                      {getLevelTitle(id)}
+                                    </span>
+                                  ))}
+                                </div>
+                              </td>
+                              <td className="px-6 py-4">
+                                <button
+                                  onClick={() => handleToggleActive(category)}
+                                  className={`px-2.5 py-1 rounded-full text-xs font-medium ${
+                                    category.isActive
+                                      ? 'bg-emerald-100 text-emerald-700'
+                                      : 'bg-gray-100 text-gray-500'
+                                  }`}
+                                >
+                                  {category.isActive ? 'Active' : 'Inactive'}
+                                </button>
+                              </td>
+                              <td className="px-6 py-4 text-right">
+                                <div className="flex items-center justify-end gap-1">
+                                  <button
+                                    onClick={() => handleEdit(category)}
+                                    className="p-2 text-gray-500 hover:text-primary-600 hover:bg-primary-50 rounded-lg"
+                                  >
+                                    <Edit size={18} />
+                                  </button>
+                                  <button
+                                    onClick={() => handleDelete(category.id)}
+                                    className="p-2 text-gray-500 hover:text-red-600 hover:bg-red-50 rounded-lg"
+                                  >
+                                    <Trash2 size={18} />
+                                  </button>
+                                </div>
+                              </td>
+                            </tr>
+                          ))}
+                        </tbody>
+                      </table>
                 </div>
               )}
             </>

@@ -4,7 +4,8 @@ import { useState, useEffect } from 'react';
 import Navbar from '@/components/Navbar';
 import { useAuth } from '@/context/AuthContext';
 import { dbService, Test, TestQuestion, Level, Difficulty } from '@/lib/database';
-import { ArrowLeft, Plus, Edit, Trash2, Save, X, FileText, CheckCircle } from 'lucide-react';
+import { ArrowLeft, Plus, Edit, Trash2, Save, X, FileText, CheckCircle, ArrowUp, ArrowDown } from 'lucide-react';
+import ConfirmModal from '@/components/ConfirmModal';
 
 interface TestFormData {
   title: string;
@@ -32,6 +33,9 @@ export default function AdminTestsPage() {
   const [editingTest, setEditingTest] = useState<Test | null>(null);
   const [formData, setFormData] = useState<TestFormData>(defaultFormData);
   const [saving, setSaving] = useState(false);
+  const [confirmDeleteTest, setConfirmDeleteTest] = useState<string | null>(null);
+  const [deleteQuestionIdx, setDeleteQuestionIdx] = useState<number | null>(null);
+  const [alertMsg, setAlertMsg] = useState<string | null>(null);
 
   useEffect(() => {
     loadData();
@@ -56,7 +60,7 @@ export default function AdminTestsPage() {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!formData.title || !formData.levelId || formData.questions.length === 0) {
-      alert('Please fill in all required fields and add at least one question');
+      setAlertMsg('Please fill in all required fields and add at least one question');
       return;
     }
 
@@ -71,7 +75,7 @@ export default function AdminTestsPage() {
       resetForm();
     } catch (e) {
       console.error('Error saving test:', e);
-      alert('Failed to save test');
+      setAlertMsg('Failed to save test');
     }
     setSaving(false);
   };
@@ -88,14 +92,19 @@ export default function AdminTestsPage() {
     setShowForm(true);
   };
 
-  const handleDelete = async (testId: string) => {
-    if (!confirm('Are you sure you want to delete this test?')) return;
+  const handleDelete = (testId: string) => {
+    setConfirmDeleteTest(testId);
+  };
+
+  const confirmDeleteTestAction = async () => {
+    if (!confirmDeleteTest) return;
     try {
-      await dbService.deleteTest(testId);
+      await dbService.deleteTest(confirmDeleteTest);
       await loadData();
     } catch (e) {
       console.error('Error deleting test:', e);
     }
+    setConfirmDeleteTest(null);
   };
 
   const resetForm = () => {
@@ -108,7 +117,6 @@ export default function AdminTestsPage() {
     setFormData(prev => ({
       ...prev,
       questions: [
-        ...prev.questions,
         {
           question: '',
           questionTranslations: {},
@@ -116,6 +124,7 @@ export default function AdminTestsPage() {
           optionsTranslations: [{}, {}, {}, {}],
           correctAnswer: 0,
         },
+        ...prev.questions,
       ],
     }));
   };
@@ -129,14 +138,38 @@ export default function AdminTestsPage() {
     }));
   };
 
-  const removeQuestion = (index: number) => {
+  const handleRemoveQuestion = (index: number) => {
+    setDeleteQuestionIdx(index);
+  };
+
+  const confirmRemoveQuestion = () => {
+    if (deleteQuestionIdx === null) return;
     setFormData(prev => ({
       ...prev,
-      questions: prev.questions.filter((_, i) => i !== index),
+      questions: prev.questions.filter((_, i) => i !== deleteQuestionIdx),
     }));
+    setDeleteQuestionIdx(null);
   };
 
   const getLevelTitle = (levelId: string) => levels.find(l => l.id === levelId)?.title || 'Unknown';
+
+  const moveQuestionUp = (index: number) => {
+    if (index === 0) return;
+    setFormData(prev => {
+      const questions = [...prev.questions];
+      [questions[index - 1], questions[index]] = [questions[index], questions[index - 1]];
+      return { ...prev, questions };
+    });
+  };
+
+  const moveQuestionDown = (index: number) => {
+    setFormData(prev => {
+      if (index >= prev.questions.length - 1) return prev;
+      const questions = [...prev.questions];
+      [questions[index], questions[index + 1]] = [questions[index + 1], questions[index]];
+      return { ...prev, questions };
+    });
+  };
 
   if (!isAdmin && !isTeacher) {
     return (
@@ -253,13 +286,31 @@ export default function AdminTestsPage() {
                       <div key={idx} className="p-4 bg-gray-50 rounded-xl border border-gray-200">
                         <div className="flex justify-between items-start mb-3">
                           <span className="font-medium text-gray-700">Question {idx + 1}</span>
-                          <button
-                            type="button"
-                            onClick={() => removeQuestion(idx)}
-                            className="text-red-500 hover:text-red-700"
-                          >
-                            <Trash2 size={18} />
-                          </button>
+                          <div className="flex items-center gap-1">
+                            <button
+                              type="button"
+                              onClick={() => moveQuestionUp(idx)}
+                              disabled={idx === 0}
+                              className="p-1 text-gray-400 hover:text-primary-600 disabled:opacity-30"
+                            >
+                              <ArrowUp size={16} />
+                            </button>
+                            <button
+                              type="button"
+                              onClick={() => moveQuestionDown(idx)}
+                              disabled={idx === formData.questions.length - 1}
+                              className="p-1 text-gray-400 hover:text-primary-600 disabled:opacity-30"
+                            >
+                              <ArrowDown size={16} />
+                            </button>
+                            <button
+                              type="button"
+                              onClick={() => handleRemoveQuestion(idx)}
+                              className="p-1 text-red-500 hover:text-red-700"
+                            >
+                              <Trash2 size={16} />
+                            </button>
+                          </div>
                         </div>
                         <div className="space-y-3">
                           <div>
@@ -411,6 +462,37 @@ export default function AdminTestsPage() {
             </>
           )}
         </div>
+
+        <ConfirmModal
+          isOpen={!!confirmDeleteTest}
+          onClose={() => setConfirmDeleteTest(null)}
+          onConfirm={confirmDeleteTestAction}
+          title="Delete Test"
+          message="Are you sure you want to delete this test?"
+          confirmLabel="Delete"
+          variant="danger"
+        />
+
+        <ConfirmModal
+          isOpen={deleteQuestionIdx !== null}
+          onClose={() => setDeleteQuestionIdx(null)}
+          onConfirm={confirmRemoveQuestion}
+          title="Remove Question"
+          message="Are you sure you want to remove this question?"
+          confirmLabel="Remove"
+          variant="warning"
+        />
+
+        <ConfirmModal
+          isOpen={!!alertMsg}
+          onClose={() => setAlertMsg(null)}
+          onConfirm={() => setAlertMsg(null)}
+          title="Notice"
+          message={alertMsg || ''}
+          confirmLabel="OK"
+          variant="info"
+          hideCancel
+        />
       </main>
     </div>
   );

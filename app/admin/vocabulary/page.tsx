@@ -6,6 +6,7 @@ import Navbar from '@/components/Navbar';
 import { useAuth } from '@/context/AuthContext';
 import { dbService, Vocabulary, Level, Category, Difficulty, Language } from '@/lib/database';
 import { ArrowLeft, Plus, Edit2, Trash2, Save, X, BookOpen, Search, Upload, FileText } from 'lucide-react';
+import ConfirmModal from '@/components/ConfirmModal';
 
 export default function VocabularyPage() {
   const { user, isAdmin, isTeacher } = useAuth();
@@ -28,6 +29,10 @@ export default function VocabularyPage() {
   const [filterLevel, setFilterLevel] = useState('');
   const [filterDifficulty, setFilterDifficulty] = useState('');
   const [filterCategory, setFilterCategory] = useState('');
+  const [pageSize, setPageSize] = useState(20);
+  const [currentPage, setCurrentPage] = useState(1);
+  const [confirmDelete, setConfirmDelete] = useState<{ id: string } | null>(null);
+  const [alertMsg, setAlertMsg] = useState<string | null>(null);
 
   const emptyForm = {
     wordKinyarwanda: '',
@@ -47,6 +52,10 @@ export default function VocabularyPage() {
 
   useEffect(() => {
     loadVocabulary();
+  }, [filterLevel, filterDifficulty, filterCategory]);
+
+  useEffect(() => {
+    setCurrentPage(1);
   }, [filterLevel, filterDifficulty, filterCategory]);
 
   const loadAll = async () => {
@@ -131,18 +140,18 @@ export default function VocabularyPage() {
   };
 
   const handleDelete = async (id: string) => {
-    if (!window.confirm('Are you sure you want to delete this vocabulary item?')) return;
     try {
       await dbService.deleteVocabulary(id);
       await loadVocabulary();
     } catch (e) {
       console.error('Failed to delete vocabulary', e);
     }
+    setConfirmDelete(null);
   };
 
   const parseBulkVocabulary = () => {
     if (!bulkLevelId || !bulkDifficulty || !bulkCategory) {
-      alert('Please select level, difficulty, and category first.');
+      setAlertMsg('Please select level, difficulty, and category first.');
       return;
     }
     const lines = bulkText.trim().split('\n').filter(l => l.trim());
@@ -202,6 +211,12 @@ export default function VocabularyPage() {
   const filtered = vocabulary.filter(v =>
     !searchTerm || v.wordKinyarwanda.toLowerCase().includes(searchTerm.toLowerCase()) ||
     v.word.toLowerCase().includes(searchTerm.toLowerCase())
+  );
+  const totalItems = filtered.length;
+  const totalPages = Math.ceil(totalItems / pageSize);
+  const paginatedItems = filtered.slice(
+    (currentPage - 1) * pageSize,
+    currentPage * pageSize
   );
 
   if (!isAdmin && !isTeacher) {
@@ -288,9 +303,9 @@ export default function VocabularyPage() {
                 <tbody>
                   {loading ? (
                     <tr><td colSpan={7} className="text-center py-8 text-gray-400">Loading...</td></tr>
-                  ) : filtered.length === 0 ? (
+                  ) : paginatedItems.length === 0 ? (
                     <tr><td colSpan={7} className="text-center py-8 text-gray-400">No vocabulary found.</td></tr>
-                  ) : filtered.map(item => (
+                  ) : paginatedItems.map(item => (
                     <tr key={item.id} className="border-b border-gray-100 hover:bg-gray-50">
                       <td className="px-4 py-3 font-medium text-gray-900">{item.wordKinyarwanda}</td>
                       <td className="px-4 py-3 text-gray-700">{item.word}</td>
@@ -308,7 +323,7 @@ export default function VocabularyPage() {
                           <button onClick={() => openEdit(item)} className="p-1.5 text-gray-400 hover:text-primary-600 hover:bg-primary-50 rounded-lg transition-colors">
                             <Edit2 size={16} />
                           </button>
-                          <button onClick={() => handleDelete(item.id)} className="p-1.5 text-gray-400 hover:text-red-600 hover:bg-red-50 rounded-lg transition-colors">
+                          <button onClick={() => setConfirmDelete({ id: item.id })} className="p-1.5 text-gray-400 hover:text-red-600 hover:bg-red-50 rounded-lg transition-colors">
                             <Trash2 size={16} />
                           </button>
                         </div>
@@ -317,6 +332,40 @@ export default function VocabularyPage() {
                   ))}
                 </tbody>
               </table>
+            </div>
+          </div>
+          <div className="flex items-center justify-between px-4 py-3 border-t border-gray-200">
+            <div className="flex items-center gap-2">
+              <span className="text-sm text-gray-500">Rows per page:</span>
+              <select
+                value={pageSize}
+                onChange={e => { setPageSize(Number(e.target.value)); setCurrentPage(1); }}
+                className="border border-gray-300 rounded px-2 py-1 text-sm"
+              >
+                <option value={10}>10</option>
+                <option value={20}>20</option>
+                <option value={50}>50</option>
+                <option value={100}>100</option>
+              </select>
+              <span className="text-sm text-gray-500 ml-2">
+                {(currentPage - 1) * pageSize + 1}-{Math.min(currentPage * pageSize, totalItems)} of {totalItems}
+              </span>
+            </div>
+            <div className="flex items-center gap-2">
+              <button
+                onClick={() => setCurrentPage(p => Math.max(1, p - 1))}
+                disabled={currentPage === 1}
+                className="px-3 py-1 text-sm border border-gray-300 rounded hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed"
+              >
+                Previous
+              </button>
+              <button
+                onClick={() => setCurrentPage(p => Math.min(totalPages, p + 1))}
+                disabled={currentPage === totalPages}
+                className="px-3 py-1 text-sm border border-gray-300 rounded hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed"
+              >
+                Next
+              </button>
             </div>
           </div>
         </div>
@@ -493,6 +542,25 @@ export default function VocabularyPage() {
           </div>
         </div>
       )}
+      <ConfirmModal
+        isOpen={!!confirmDelete}
+        onClose={() => setConfirmDelete(null)}
+        onConfirm={() => handleDelete(confirmDelete!.id)}
+        title="Delete Vocabulary"
+        message="Are you sure you want to delete this vocabulary item?"
+        confirmLabel="Delete"
+        variant="danger"
+      />
+      <ConfirmModal
+        isOpen={!!alertMsg}
+        onClose={() => setAlertMsg(null)}
+        onConfirm={() => setAlertMsg(null)}
+        title="Notice"
+        message={alertMsg || ''}
+        confirmLabel="OK"
+        variant="info"
+        hideCancel
+      />
     </div>
   );
 }

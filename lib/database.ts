@@ -118,6 +118,7 @@ export interface VideoCategory {
   id: string;
   name: string;
   slug: string;
+  levelIds: string[];
   order: number;
   isActive: boolean;
 }
@@ -172,6 +173,20 @@ export interface PointHistory {
   createdAt: Date;
 }
 
+export interface TestAttempt {
+  id: string;
+  userId: string;
+  testId: string;
+  levelId: string;
+  levelTitle: string;
+  score: number;
+  totalQuestions: number;
+  percentage: number;
+  passed: boolean;
+  answers: (number | null)[];
+  createdAt: Date;
+}
+
 export interface UserStats {
   totalPoints: number;
   testsCompleted: number;
@@ -188,7 +203,7 @@ export interface Category {
   name: string;
   nameKinyarwanda: string;
   slug: string;
-  levelId: string;
+  levelIds: string[];
   isActive: boolean;
 }
 
@@ -199,7 +214,7 @@ export interface Difficulty {
   slug: string;
   order: number;
   isActive: boolean;
-  levelId: string;
+  levelIds: string[];
 }
 
 export interface Language {
@@ -251,6 +266,7 @@ class DatabaseService {
   private videoCategoriesCollection = collection(db, 'videoCategories');
   private subscriptionsCollection = collection(db, 'subscriptions');
   private invoicesCollection = collection(db, 'invoices');
+  private testAttemptsCollection = collection(db, 'testAttempts');
 
   // LEVELS
   async getLevels(): Promise<Level[]> {
@@ -587,13 +603,17 @@ class DatabaseService {
   }
 
   // CATEGORIES
-  async getCategories(filters?: { levelId?: string }): Promise<Category[]> {
-    let q = query(this.categoriesCollection, orderBy('name'));
-    if (filters?.levelId) {
-      q = query(this.categoriesCollection, where('levelId', '==', filters.levelId), orderBy('name'));
-    }
+  async getCategories(filters?: { levelId?: string; levelIds?: string[] }): Promise<Category[]> {
+    const q = query(this.categoriesCollection, orderBy('name'));
     const snapshot = await getDocs(q);
-    return snapshot.docs.map(d => ({ id: d.id, ...d.data() } as Category));
+    let results = snapshot.docs.map(d => ({ id: d.id, ...d.data() } as Category));
+    if (filters?.levelId) {
+      results = results.filter(c => c.levelIds?.includes(filters.levelId!));
+    }
+    if (filters?.levelIds && filters.levelIds.length > 0) {
+      results = results.filter(c => c.levelIds?.some(id => filters.levelIds!.includes(id)));
+    }
+    return results;
   }
 
   async createCategory(data: Omit<Category, 'id'>): Promise<string> {
@@ -610,12 +630,15 @@ class DatabaseService {
   }
 
   // DIFFICULTIES
-  async getDifficulties(filters?: { levelId?: string }): Promise<Difficulty[]> {
-    let q = query(this.difficultiesCollection, orderBy('order'));
+  async getDifficulties(filters?: { levelId?: string; levelIds?: string[] }): Promise<Difficulty[]> {
+    const q = query(this.difficultiesCollection, orderBy('order'));
     const snapshot = await getDocs(q);
     let results = snapshot.docs.map(d => ({ id: d.id, ...d.data() } as Difficulty));
     if (filters?.levelId) {
-      results = results.filter(d => d.levelId === filters.levelId);
+      results = results.filter(d => d.levelIds?.includes(filters.levelId!));
+    }
+    if (filters?.levelIds && filters.levelIds.length > 0) {
+      results = results.filter(d => d.levelIds?.some(id => filters.levelIds!.includes(id)));
     }
     return results;
   }
@@ -666,12 +689,18 @@ class DatabaseService {
   }
 
   // VIDEO CATEGORIES
-  async getVideoCategories(filters?: { isActive?: boolean }): Promise<VideoCategory[]> {
-    let q = query(this.videoCategoriesCollection, orderBy('order'));
+  async getVideoCategories(filters?: { isActive?: boolean; levelId?: string; levelIds?: string[] }): Promise<VideoCategory[]> {
+    const q = query(this.videoCategoriesCollection, orderBy('order'));
     const snapshot = await getDocs(q);
     let results = snapshot.docs.map(d => ({ id: d.id, ...d.data() } as VideoCategory));
     if (filters?.isActive !== undefined) {
       results = results.filter(r => r.isActive === filters.isActive);
+    }
+    if (filters?.levelId) {
+      results = results.filter(c => c.levelIds?.includes(filters.levelId!));
+    }
+    if (filters?.levelIds && filters.levelIds.length > 0) {
+      results = results.filter(c => c.levelIds?.some(id => filters.levelIds!.includes(id)));
     }
     return results;
   }
@@ -934,6 +963,45 @@ class DatabaseService {
     const month = String(date.getMonth() + 1).padStart(2, '0');
     const random = Math.floor(Math.random() * 10000).toString().padStart(4, '0');
     return `${prefix}-${year}${month}-${random}`;
+  }
+
+  // TEST ATTEMPTS
+  async getTestAttempts(userId: string): Promise<TestAttempt[]> {
+    const q = query(
+      this.testAttemptsCollection,
+      where('userId', '==', userId),
+      orderBy('createdAt', 'desc')
+    );
+    const snapshot = await getDocs(q);
+    return snapshot.docs.map(d => {
+      const data = d.data();
+      return {
+        id: d.id,
+        ...data,
+        createdAt: data.createdAt?.toDate ? data.createdAt.toDate() : new Date(data.createdAt),
+      } as TestAttempt;
+    });
+  }
+
+  async createTestAttempt(data: Omit<TestAttempt, 'id'>): Promise<string> {
+    const docRef = await addDoc(this.testAttemptsCollection, data);
+    return docRef.id;
+  }
+
+  async getAllTestAttempts(filters?: { levelId?: string }): Promise<TestAttempt[]> {
+    let q = query(this.testAttemptsCollection, orderBy('createdAt', 'desc'));
+    if (filters?.levelId) {
+      q = query(this.testAttemptsCollection, where('levelId', '==', filters.levelId), orderBy('createdAt', 'desc'));
+    }
+    const snapshot = await getDocs(q);
+    return snapshot.docs.map(d => {
+      const data = d.data();
+      return {
+        id: d.id,
+        ...data,
+        createdAt: data.createdAt?.toDate ? data.createdAt.toDate() : new Date(data.createdAt),
+      } as TestAttempt;
+    });
   }
 }
 

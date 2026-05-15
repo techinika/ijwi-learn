@@ -81,7 +81,7 @@ export interface Category {
   name: string;
   nameKinyarwanda: string;
   slug: string;
-  levelId: string;
+  levelIds: string[];
   isActive: boolean;
 }
 

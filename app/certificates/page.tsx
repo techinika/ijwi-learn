@@ -45,14 +45,25 @@ export default function CertificatesPage() {
         dbService.getLevels(),
       ]);
       setLevels(dbLevels);
-      setCertificates(dbCerts.map(c => ({
-        id: c.id,
-        levelId: c.levelId,
-        levelName: c.levelName,
-        score: c.score,
-        completedAt: c.completedAt instanceof Date ? c.completedAt : new Date(c.completedAt),
-        certificateId: c.certificateId,
-      })));
+      setCertificates(dbCerts.map(c => {
+        let completedAt: Date;
+        const raw = c.completedAt;
+        if (raw instanceof Date) {
+          completedAt = raw;
+        } else if (raw && typeof raw === 'object' && 'seconds' in raw) {
+          completedAt = new Date((raw as any).seconds * 1000);
+        } else {
+          completedAt = new Date(raw as any);
+        }
+        return {
+          id: c.id,
+          levelId: c.levelId,
+          levelName: c.levelName,
+          score: c.score,
+          completedAt,
+          certificateId: c.certificateId,
+        };
+      }));
     } catch (error) {
       console.log('Error loading data:', error);
     }

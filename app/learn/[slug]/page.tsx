@@ -5,9 +5,9 @@ import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import Navbar from '@/components/Navbar';
 import { Loading, FetchLoading } from '@/app/AppLoading';
-import { ArrowLeft, ChevronLeft, ChevronRight, BookOpen, Shuffle, RefreshCw } from 'lucide-react';
+import { ArrowLeft, ChevronLeft, ChevronRight, BookOpen, Shuffle, RefreshCw, Filter } from 'lucide-react';
 import { useAuth } from '@/context/AuthContext';
-import { dbService, Category, Level, Vocabulary } from '@/lib/database';
+import { dbService, Category, Level, Difficulty, Vocabulary } from '@/lib/database';
 import type { Vocabulary as VocabType } from '@/lib/database';
 
 interface TopicItem {
@@ -25,6 +25,8 @@ export default function LevelPage({ params }: { params: Promise<{ slug: string }
   const [level, setLevel] = useState<Level | null>(null);
   const [topics, setTopics] = useState<TopicItem[]>([]);
   const [activeTopic, setActiveTopic] = useState<string>('');
+  const [difficulties, setDifficulties] = useState<Difficulty[]>([]);
+  const [activeDifficulty, setActiveDifficulty] = useState<string>('');
   const [vocabulary, setVocabulary] = useState<VocabType[]>([]);
   const [currentIndex, setCurrentIndex] = useState(0);
   const [loading, setLoading] = useState(true);
@@ -41,6 +43,10 @@ export default function LevelPage({ params }: { params: Promise<{ slug: string }
       loadVocabulary();
       setViewedWords(new Set());
     }
+  }, [activeTopic]);
+
+  useEffect(() => {
+    setActiveDifficulty('');
   }, [activeTopic]);
 
   useEffect(() => {
@@ -62,9 +68,10 @@ export default function LevelPage({ params }: { params: Promise<{ slug: string }
   const loadData = async () => {
     setLoading(true);
     try {
-      const [dbLevels, dbCategories] = await Promise.all([
+      const [dbLevels, dbCategories, dbDifficulties] = await Promise.all([
         dbService.getLevels(),
         dbService.getCategories(),
+        dbService.getDifficulties(),
       ]);
 
       const currentLevel = dbLevels.find(l => l.slug === slug);
@@ -86,8 +93,13 @@ export default function LevelPage({ params }: { params: Promise<{ slug: string }
 
       setLevel(currentLevel);
 
+      const levelDifficulties = dbDifficulties.filter(d =>
+        d.levelIds?.includes(currentLevel.id) || !d.levelIds?.length
+      );
+      setDifficulties(levelDifficulties);
+
       const levelCategories = dbCategories.filter(c =>
-        c.levelId === currentLevel.id || c.levelId === ''
+        c.levelIds?.includes(currentLevel.id) || !c.levelIds?.length
       );
 
       const topicItems: TopicItem[] = [
@@ -112,12 +124,15 @@ export default function LevelPage({ params }: { params: Promise<{ slug: string }
     if (!level) return;
     setFetchingVocab(true);
     try {
-      let filters: { levelId?: string; category?: string } = {};
+      let filters: { levelId?: string; category?: string; difficulty?: string } = {};
 
       if (activeTopic === 'all') {
         filters = { levelId: level.id };
       } else if (activeTopic) {
         filters = { levelId: level.id, category: activeTopic };
+      }
+      if (activeDifficulty) {
+        filters.difficulty = activeDifficulty;
       }
 
       const items = await dbService.getVocabulary(filters);
@@ -192,6 +207,40 @@ export default function LevelPage({ params }: { params: Promise<{ slug: string }
                   </button>
                 ))}
               </div>
+
+              {difficulties.length > 0 && (
+                <div className="mb-6">
+                  <div className="flex items-center gap-2 mb-2">
+                    <Filter size={16} className="text-gray-400" />
+                    <span className="text-sm font-medium text-gray-600">Filter by Difficulty:</span>
+                  </div>
+                  <div className="flex gap-2 flex-wrap">
+                    <button
+                      onClick={() => setActiveDifficulty('')}
+                      className={`px-4 py-2 rounded-full text-sm font-medium transition ${
+                        !activeDifficulty
+                          ? 'bg-gray-800 text-white'
+                          : 'bg-white text-gray-700 border border-gray-200 hover:bg-gray-50'
+                      }`}
+                    >
+                      All
+                    </button>
+                    {difficulties.map(d => (
+                      <button
+                        key={d.id}
+                        onClick={() => setActiveDifficulty(d.id)}
+                        className={`px-4 py-2 rounded-full text-sm font-medium transition ${
+                          activeDifficulty === d.id
+                            ? 'bg-primary-600 text-white'
+                            : 'bg-white text-gray-700 border border-gray-200 hover:bg-gray-50'
+                        }`}
+                      >
+                        {d.name}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+              )}
 
               {items.length === 0 ? (
                 <div className="text-center py-16 bg-white rounded-2xl border border-gray-200">

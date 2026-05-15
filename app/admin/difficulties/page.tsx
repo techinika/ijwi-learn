@@ -5,6 +5,7 @@ import Navbar from '@/components/Navbar';
 import { useAuth } from '@/context/AuthContext';
 import { dbService, Difficulty, Level } from '@/lib/database';
 import { ArrowLeft, Plus, Edit2, Trash2, Save, X, BarChart3 } from 'lucide-react';
+import ConfirmModal from '@/components/ConfirmModal';
 
 export default function DifficultiesPage() {
   const { isAdmin } = useAuth();
@@ -13,7 +14,8 @@ export default function DifficultiesPage() {
   const [loading, setLoading] = useState(true);
   const [showModal, setShowModal] = useState(false);
   const [editing, setEditing] = useState<Difficulty | null>(null);
-  const [form, setForm] = useState({ name: '', nameKinyarwanda: '', slug: '', order: 0, isActive: true, levelId: '' });
+  const [confirmDelete, setConfirmDelete] = useState<{ id: string } | null>(null);
+  const [form, setForm] = useState({ name: '', nameKinyarwanda: '', slug: '', order: 0, isActive: true, levelIds: [] as string[] });
 
   useEffect(() => {
     loadAll();
@@ -35,20 +37,20 @@ export default function DifficultiesPage() {
   };
 
   const openAdd = () => {
-    setForm({ name: '', nameKinyarwanda: '', slug: '', order: items.length + 1, isActive: true, levelId: '' });
+    setForm({ name: '', nameKinyarwanda: '', slug: '', order: items.length + 1, isActive: true, levelIds: [] });
     setEditing(null);
     setShowModal(true);
   };
 
   const openEdit = (item: Difficulty) => {
-    setForm({ name: item.name, nameKinyarwanda: item.nameKinyarwanda, slug: item.slug, order: item.order, isActive: item.isActive, levelId: item.levelId || '' });
+    setForm({ name: item.name, nameKinyarwanda: item.nameKinyarwanda, slug: item.slug, order: item.order, isActive: item.isActive, levelIds: item.levelIds || [] });
     setEditing(item);
     setShowModal(true);
   };
 
   const handleSave = async () => {
-    if (!form.name || !form.nameKinyarwanda || !form.slug || !form.levelId) return;
-    const data = { name: form.name, nameKinyarwanda: form.nameKinyarwanda, slug: form.slug, order: Number(form.order), isActive: form.isActive, levelId: form.levelId };
+    if (!form.name || !form.nameKinyarwanda || !form.slug || form.levelIds.length === 0) return;
+    const data = { name: form.name, nameKinyarwanda: form.nameKinyarwanda, slug: form.slug, order: Number(form.order), isActive: form.isActive, levelIds: form.levelIds };
     try {
       if (editing) {
         await dbService.updateDifficulty(editing.id, data);
@@ -62,14 +64,16 @@ export default function DifficultiesPage() {
     }
   };
 
+  const getLevelTitle = (id: string) => levels.find(l => l.id === id)?.title || id;
+
   const handleDelete = async (id: string) => {
-    if (!window.confirm('Are you sure you want to delete this difficulty level?')) return;
     try {
       await dbService.deleteDifficulty(id);
       await loadAll();
     } catch (e) {
       console.error('Failed to delete difficulty', e);
     }
+    setConfirmDelete(null);
   };
 
   if (!isAdmin) {
@@ -133,7 +137,16 @@ export default function DifficultiesPage() {
                       <td className="px-4 py-3 font-medium text-gray-900">{item.name}</td>
                       <td className="px-4 py-3 text-gray-700">{item.nameKinyarwanda}</td>
                       <td className="px-4 py-3 text-gray-500 font-mono text-xs">{item.slug}</td>
-                      <td className="px-4 py-3 text-gray-700">{levels.find(l => l.id === item.levelId)?.title || 'Not set'}</td>
+                      <td className="px-4 py-3">
+                        <div className="flex flex-wrap gap-1">
+                          {(item.levelIds || []).map(id => (
+                            <span key={id} className="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-primary-50 text-primary-700">
+                              {getLevelTitle(id)}
+                            </span>
+                          ))}
+                          {(item.levelIds || []).length === 0 && <span className="text-gray-400 text-xs">Not set</span>}
+                        </div>
+                      </td>
                       <td className="px-4 py-3 text-center text-gray-700">{item.order}</td>
                       <td className="px-4 py-3 text-center">
                         <span className={`inline-flex items-center px-2.5 py-1 rounded-full text-xs font-medium ${item.isActive ? 'bg-green-100 text-green-700' : 'bg-gray-100 text-gray-500'}`}>
@@ -145,7 +158,7 @@ export default function DifficultiesPage() {
                           <button onClick={() => openEdit(item)} className="p-1.5 text-gray-400 hover:text-primary-600 hover:bg-primary-50 rounded-lg transition-colors">
                             <Edit2 size={16} />
                           </button>
-                          <button onClick={() => handleDelete(item.id)} className="p-1.5 text-gray-400 hover:text-red-600 hover:bg-red-50 rounded-lg transition-colors">
+                          <button onClick={() => setConfirmDelete({ id: item.id })} className="p-1.5 text-gray-400 hover:text-red-600 hover:bg-red-50 rounded-lg transition-colors">
                             <Trash2 size={16} />
                           </button>
                         </div>
@@ -158,6 +171,16 @@ export default function DifficultiesPage() {
           </div>
         </div>
       </div>
+
+      <ConfirmModal
+        isOpen={!!confirmDelete}
+        onClose={() => setConfirmDelete(null)}
+        onConfirm={() => handleDelete(confirmDelete!.id)}
+        title="Delete Difficulty"
+        message="Are you sure you want to delete this difficulty level?"
+        confirmLabel="Delete"
+        variant="danger"
+      />
 
       {showModal && (
         <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
@@ -182,11 +205,27 @@ export default function DifficultiesPage() {
                 <input type="text" value={form.slug} onChange={e => setForm(p => ({ ...p, slug: e.target.value }))} className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary-600" placeholder="e.g. beginner" />
               </div>
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">Level *</label>
-                <select value={form.levelId} onChange={e => setForm(p => ({ ...p, levelId: e.target.value }))} className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary-600">
-                  <option value="">Select level</option>
-                  {levels.map(l => <option key={l.id} value={l.id}>{l.title}</option>)}
-                </select>
+                <label className="block text-sm font-medium text-gray-700 mb-1">Levels *</label>
+                <div className="space-y-2 max-h-48 overflow-y-auto border border-gray-300 rounded-lg p-3">
+                  {levels.map(l => (
+                    <label key={l.id} className="flex items-center gap-2 cursor-pointer">
+                      <input
+                        type="checkbox"
+                        checked={form.levelIds.includes(l.id)}
+                        onChange={e => {
+                          if (e.target.checked) {
+                            setForm(p => ({ ...p, levelIds: [...p.levelIds, l.id] }));
+                          } else {
+                            setForm(p => ({ ...p, levelIds: p.levelIds.filter(id => id !== l.id) }));
+                          }
+                        }}
+                        className="w-4 h-4 text-primary-600 border-gray-300 rounded focus:ring-primary-600"
+                      />
+                      <span className="text-sm text-gray-700">{l.title}</span>
+                    </label>
+                  ))}
+                  {levels.length === 0 && <p className="text-sm text-gray-400">No levels available</p>}
+                </div>
               </div>
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1">Order</label>
