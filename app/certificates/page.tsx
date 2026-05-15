@@ -95,10 +95,11 @@ export default function CertificatesPage() {
     const rootInstance = createRoot(root);
     rootInstance.render(<CertificateComponent {...certificateData} />);
 
-    await new Promise(r => setTimeout(r, 300));
+    await new Promise(r => setTimeout(r, 500));
 
-    const capturedDiv = div.querySelector('div') as HTMLElement;
+    const capturedDiv = root.firstElementChild as HTMLElement;
     if (capturedDiv) {
+      capturedDiv.style.position = 'relative';
       await downloadCertificateAsPDF(capturedDiv, certificateData);
     }
 

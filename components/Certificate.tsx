@@ -34,6 +34,8 @@ const Certificate = forwardRef<HTMLDivElement, CertificateProps>(
           borderRadius: '12px',
           border: '2px solid #f59e0b',
           overflow: 'hidden',
+          color: '#111827',
+          fontFamily: 'Plus Jakarta Sans, sans-serif',
         }}
       >
         <div style={{ position: 'absolute', top: 0, left: 0, width: '100%', height: '8px', backgroundColor: '#f59e0b' }}></div>

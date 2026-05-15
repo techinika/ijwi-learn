@@ -19,6 +19,13 @@ export async function downloadCertificateAsPDF(
       useCORS: true,
       logging: false,
       backgroundColor: '#ffffff',
+      onclone: (doc) => {
+        doc.querySelectorAll('style').forEach((el) => {
+          if (el.textContent?.includes('lab(') || el.textContent?.includes('oklch(')) {
+            el.remove();
+          }
+        });
+      },
     });
 
     const imgData = canvas.toDataURL('image/png');
