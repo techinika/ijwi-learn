@@ -94,23 +94,23 @@ export default function DialoguePage() {
             </div>
           </div>
 
-          <div className="space-y-4">
+          <div className="space-y-3">
             {dialogue.lines.map((line, idx) => {
               const colorClass = speakerColors[line.speakerIndex % speakerColors.length];
               const speakerName = dialogue.speakers[line.speakerIndex] || `Speaker ${line.speakerIndex + 1}`;
               return (
-                <div key={idx} className="bg-white rounded-xl shadow-sm border border-gray-200 p-4">
-                  <div className="flex items-start gap-3">
-                    <div className={`w-10 h-10 ${colorClass} rounded-full flex items-center justify-center text-white font-semibold shrink-0`}>
+                <div key={idx} className="bg-white rounded-lg border border-gray-100 p-3">
+                  <div className="flex items-start gap-2">
+                    <div className={`w-8 h-8 ${colorClass} rounded-full flex items-center justify-center text-white text-xs font-semibold shrink-0`}>
                       {speakerName.charAt(0).toUpperCase()}
                     </div>
                     <div className="flex-1 min-w-0">
-                      <div className="flex items-center gap-2 mb-2">
-                        <span className="font-semibold text-gray-900">{speakerName}</span>
+                      <div className="flex items-center gap-2 mb-1">
+                        <span className="text-sm font-medium text-gray-900">{speakerName}</span>
                       </div>
-                      <div className="space-y-2">
-                        <p className="text-lg text-gray-900 leading-relaxed">{line.kinyarwanda}</p>
-                        <p className="text-sm text-gray-500 leading-relaxed italic">{line.english}</p>
+                      <div className="space-y-1">
+                        <p className="text-base text-gray-800 leading-snug">{line.kinyarwanda}</p>
+                        <p className="text-sm text-gray-500 leading-snug">{line.english}</p>
                       </div>
                     </div>
                   </div>
