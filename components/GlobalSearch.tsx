@@ -128,8 +128,8 @@ export default function GlobalSearch() {
       <div className="text-center">
         <div className="flex items-center justify-center gap-3 mb-2">
           <h3 className="text-3xl font-bold text-gray-900">{item.wordKinyarwanda}</h3>
-          {item.pronunciation && (
-            <button onClick={() => speakWord(item.wordKinyarwanda)} className="p-2 text-gray-400 hover:text-primary-600 hover:bg-primary-50 rounded-lg">
+          {(item.pronunciation || item.wordKinyarwanda) && (
+            <button onClick={() => speakWord(item.pronunciation || item.wordKinyarwanda)} className="p-2 text-gray-400 hover:text-primary-600 hover:bg-primary-50 rounded-lg">
               <Volume2 size={20} />
             </button>
           )}
