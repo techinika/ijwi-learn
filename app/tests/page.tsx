@@ -184,6 +184,8 @@ export default function TestsPage() {
     currentPage * TESTS_PER_PAGE
   );
 
+  const passedLevelIds = new Set(testAttempts.filter(a => a.passed).map(a => a.levelId));
+
   useEffect(() => {
     setCurrentPage(1);
   }, [filterLevel]);
@@ -386,9 +388,16 @@ export default function TestsPage() {
                         </p>
                       </div>
                     </div>
-                    <button className="w-full py-3 bg-primary-600 text-white rounded-xl hover:bg-primary-700 font-medium text-sm shadow-md">
-                      Start Test
-                    </button>
+                    <div className="flex items-center gap-2">
+                      <button className="flex-1 py-3 bg-primary-600 text-white rounded-xl hover:bg-primary-700 font-medium text-sm shadow-md">
+                        {passedLevelIds.has(test.levelId) ? 'Retry Test' : 'Start Test'}
+                      </button>
+                      {passedLevelIds.has(test.levelId) && (
+                        <span className="inline-flex items-center gap-1 px-3 py-2 bg-emerald-100 text-emerald-700 rounded-xl text-xs font-medium whitespace-nowrap">
+                          Passed
+                        </span>
+                      )}
+                    </div>
                   </div>
                 );
               })}
