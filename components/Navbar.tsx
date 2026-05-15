@@ -18,6 +18,7 @@ import {
 } from "lucide-react";
 import { useState, useEffect } from "react";
 import { dbService, Language } from "@/lib/database";
+import GlobalSearch from "./GlobalSearch";
 
 export default function Navbar() {
   const { user, userData, logout, signInWithGoogle, updateUserData } =
@@ -99,6 +100,10 @@ export default function Navbar() {
           <div className="flex items-center gap-3">
             {user ? (
               <>
+                <div className="hidden md:block">
+                  <GlobalSearch />
+                </div>
+
                 <Link
                   href="/chat"
                   className="hidden md:flex items-center gap-2 px-4 py-2 bg-emerald-600 text-white rounded-xl hover:bg-emerald-700 transition text-sm font-medium shadow-sm"
