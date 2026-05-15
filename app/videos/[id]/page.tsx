@@ -145,9 +145,9 @@ export default function VideoPage({ params }: { params: Promise<{ id: string }> 
     <div className="min-h-screen bg-gray-950">
       <Navbar />
       <main className="pt-16 sm:pt-20">
-        <div className="bg-black w-full flex items-center justify-center">
+        <div className="bg-black w-full flex items-center justify-center pt-4 sm:pt-6">
           {embedUrl ? (
-            <div className="w-full max-w-5xl" style={{ maxHeight: '70vh' }}>
+            <div className="w-full max-w-5xl mb-4 sm:mb-6" style={{ maxHeight: '70vh' }}>
               <div className="relative w-full" style={{ paddingBottom: '56.25%' }}>
                 <iframe
                   src={embedUrl}
@@ -164,7 +164,7 @@ export default function VideoPage({ params }: { params: Promise<{ id: string }> 
           )}
         </div>
 
-        <div className="max-w-4xl mx-auto px-4 py-6">
+        <div className="max-w-4xl mx-auto px-4 py-6 sm:py-8">
           <Link href="/videos" className="inline-flex items-center gap-1 text-gray-400 hover:text-white text-sm mb-4 transition">
             <ChevronRight size={14} className="rotate-180" />
             Back to Videos
