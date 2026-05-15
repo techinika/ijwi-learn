@@ -28,6 +28,8 @@ function TestsPageContent() {
   const [pointHistory, setPointHistory] = useState<PointHistory[]>([]);
   const [testAttempts, setTestAttempts] = useState<TestAttempt[]>([]);
   const [showHistory, setShowHistory] = useState(false);
+  const [certificates, setCertificates] = useState<{ levelId: number; difficulty: string }[]>([]);
+  const [currentDifficulty, setCurrentDifficulty] = useState<string>('');
   const searchParams = useSearchParams();
 
   useEffect(() => {
@@ -46,16 +48,18 @@ function TestsPageContent() {
 
   const loadData = async () => {
     try {
-      const [dbLevels, dbTests, history, attempts] = await Promise.all([
+      const [dbLevels, dbTests, history, attempts, userCerts] = await Promise.all([
         dbService.getLevels(),
         dbService.getTests(),
         user ? dbService.getPointHistory(user.uid) : Promise.resolve([]),
         user ? dbService.getTestAttempts(user.uid) : Promise.resolve([]),
+        user ? dbService.getCertificates(user.uid) : Promise.resolve([]),
       ]);
       setLevels(dbLevels);
       setTests(dbTests);
       setPointHistory(history);
       setTestAttempts(attempts);
+      setCertificates(userCerts.map(c => ({ levelId: c.levelId, difficulty: c.difficulty })));
     } catch (e) {
       console.error('Failed to load tests', e);
     } finally {
@@ -82,6 +86,7 @@ function TestsPageContent() {
 
     setTestQuestions(selected);
     setSelectedLevel(levelId);
+    setCurrentDifficulty(test.difficulty || '');
     setCurrentQuestion(0);
     setAnswers([]);
     setShowResult(false);
@@ -99,6 +104,10 @@ function TestsPageContent() {
       const percentage = Math.round((score / testQuestions.length) * 100);
       const passed = percentage >= 80;
       setShowResult(true);
+
+      const levelNum = parseInt(selectedLevel || '0');
+      const existingCert = certificates.find(c => c.levelId === levelNum && c.difficulty === currentDifficulty);
+      const hasAttemptedBefore = testAttempts.some(a => a.levelId === selectedLevel && (a as any).difficulty === currentDifficulty);
 
       if (user && selectedLevel) {
         const level = levels.find(l => l.id === selectedLevel);
@@ -118,29 +127,32 @@ function TestsPageContent() {
 
       await incrementTestsCompleted();
 
-      if (user) {
+      if (user && !hasAttemptedBefore) {
         await dbService.awardPoints(user.uid, 10, 'Completed a test', 'test');
       }
 
       if (passed) {
         await incrementConsecutivePasses();
         if (user && selectedLevel) {
-          await dbService.awardPoints(user.uid, 20, 'Test passed (80%+)', 'test');
-
           const level = levels.find(l => l.id === selectedLevel);
           const score = calculateScore();
-          if (level) {
+
+          if (!existingCert && level) {
+            await dbService.awardPoints(user.uid, 20, 'Test passed (80%+)', 'test');
             await completeLevel(level.order);
             await dbService.createCertificate({
               userId: user.uid,
-              levelId: parseInt(selectedLevel),
+              levelId: levelNum,
               levelName: level.title,
+              difficulty: currentDifficulty,
               score: Math.round((score / testQuestions.length) * 100),
               completedAt: new Date(),
-              certificateId: `CERT-${user.uid.slice(0, 8)}-${selectedLevel}-${Date.now()}`,
+              certificateId: `CERT-${user.uid.slice(0, 8)}-${selectedLevel}-${currentDifficulty}-${Date.now()}`,
             });
             await dbService.awardPoints(user.uid, 100, 'Achieved certificate', 'merit');
             await dbService.awardPoints(user.uid, 50, 'Certificate merit bonus', 'merit');
+          } else if (hasAttemptedBefore) {
+            await dbService.awardPoints(user.uid, 5, 'Practice test completed', 'practice');
           }
         }
 

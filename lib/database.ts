@@ -96,6 +96,7 @@ export interface Certificate {
   userId: string;
   levelId: number;
   levelName: string;
+  difficulty: string;
   score: number;
   completedAt: Date;
   certificateId: string;
