@@ -97,7 +97,7 @@ export default function TestDetailPage() {
   return (
     <div className="min-h-screen bg-gradient-to-b from-gray-50 to-white">
       <Navbar />
-      <main className="pt-20 pb-12 px-4">
+      <main className="pt-20 md:pt-30 pb-12 px-4">
         <div className="max-w-2xl mx-auto">
           <div className="flex items-center gap-3 mb-6">
             <Link href="/tests" className="text-primary-600 hover:underline font-medium flex items-center gap-2">
