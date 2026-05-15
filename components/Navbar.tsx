@@ -59,7 +59,7 @@ export default function Navbar() {
 
   return (
     <nav className="fixed top-0 left-0 right-0 z-50 bg-white/95 backdrop-blur-sm shadow-lg border-b border-gray-100">
-      <div className="w-full px-4 mx-auto px-4 sm:px-6 py-3">
+      <div className="w-full mx-auto px-4 sm:px-6 py-3">
         <div className="flex items-center justify-between">
           <Link href="/" className="flex items-center gap-3 group">
             <div className="w-10 h-10 bg-gradient-to-br from-primary-500 to-primary-700 rounded-xl flex items-center justify-center text-white shadow-md group-hover:scale-105 transition-transform">
