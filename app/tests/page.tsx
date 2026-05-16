@@ -2,7 +2,6 @@
 
 import { useState, useEffect, Suspense } from 'react';
 import Link from 'next/link';
-import { useSearchParams } from 'next/navigation';
 import Navbar from '@/components/Navbar';
 import { useAuth } from '@/context/AuthContext';
 import { dbService, Level, Test, TestQuestion, PointHistory, TestAttempt } from '@/lib/database';
@@ -30,17 +29,6 @@ function TestsPageContent() {
   const [showHistory, setShowHistory] = useState(false);
   const [certificates, setCertificates] = useState<{ levelId: number; difficulty: string }[]>([]);
   const [currentDifficulty, setCurrentDifficulty] = useState<string>('');
-  const searchParams = useSearchParams();
-
-  useEffect(() => {
-    const startParam = searchParams.get('start');
-    if (startParam && tests.length > 0) {
-      const testExists = tests.some(t => t.levelId === startParam);
-      if (testExists) {
-        startTest(startParam);
-      }
-    }
-  }, [searchParams, tests]);
 
   useEffect(() => {
     loadData();

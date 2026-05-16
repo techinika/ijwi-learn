@@ -55,7 +55,7 @@ export default function TestDetailPage() {
     : null;
 
   const handleStartTest = () => {
-    router.push(`/tests?start=${testId}`);
+    router.push(`/tests/${testId}/attempt`);
   };
 
   if (loading) {

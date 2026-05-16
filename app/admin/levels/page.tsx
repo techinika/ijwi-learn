@@ -141,7 +141,7 @@ const openAdd = () => {
                       <td className="px-4 py-3 font-medium text-gray-900">{item.title}</td>
                       <td className="px-4 py-3 text-gray-500">{item.slug || '-'}</td>
                       <td className="px-4 py-3 text-gray-500 max-w-xs truncate">{item.description}</td>
-                      <td className="px-4 py-3 text-center font-medium text-gray-900">${item.price}</td>
+                      <td className="px-4 py-3 text-center font-medium text-gray-900">{item.price} RWF</td>
                       <td className="px-4 py-3 text-center text-gray-700">{item.order}</td>
                       <td className="px-4 py-3 text-center">
                         <span className={`inline-flex items-center px-2.5 py-1 rounded-full text-xs font-medium capitalize ${
@@ -202,7 +202,7 @@ const openAdd = () => {
               </div>
               <div className="grid grid-cols-2 gap-4">
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">Price</label>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">Price (RWF)</label>
                   <input type="number" value={form.price} onChange={e => setForm(p => ({ ...p, price: Number(e.target.value) }))} className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary-600" />
                 </div>
                 <div>
