@@ -345,21 +345,17 @@ function TestsPageContent() {
           </div>
 
           <FetchLoading isLoading={loading} fallback={<Loading text="Loading tests..." />}>
-            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-6">
-              <div className="flex gap-2 overflow-x-auto pb-2 scrollbar-thin">
-                {levelOptions.map(level => (
-                  <button
-                    key={level}
-                    onClick={() => setFilterLevel(level)}
-                    className={`px-3 py-1.5 rounded-full text-xs font-medium transition shrink-0 ${
-                      filterLevel === level
-                        ? 'bg-primary-600 text-white'
-                        : 'bg-white text-gray-700 border border-gray-200 hover:bg-gray-50'
-                    }`}
-                  >
-                    {level === 'all' ? 'All Levels' : level}
-                  </button>
-                ))}
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 mb-4">
+              <div className="flex gap-2 flex-1">
+                <select
+                  value={filterLevel}
+                  onChange={(e) => setFilterLevel(e.target.value)}
+                  className="flex-1 px-3 py-1.5 rounded-lg border border-gray-200 text-xs bg-white"
+                >
+                  {levelOptions.map(level => (
+                    <option key={level} value={level}>{level === 'all' ? 'All Levels' : level}</option>
+                  ))}
+                </select>
               </div>
               {testAttempts.length > 0 && (
                 <button

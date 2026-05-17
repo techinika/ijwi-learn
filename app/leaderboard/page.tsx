@@ -4,7 +4,7 @@ import { useState, useEffect } from 'react';
 import Link from 'next/link';
 import Navbar from '@/components/Navbar';
 import { dbService, Level } from '@/lib/database';
-import { ArrowLeft, Trophy, Medal, Crown, BookOpen, FileText, MessageCircle, Play, ChevronRight } from 'lucide-react';
+import { ArrowLeft, Trophy, Medal, Crown, BookOpen, FileText, MessageCircle, Play, ChevronRight, Search } from 'lucide-react';
 
 interface LeaderboardUser {
   id: string;
@@ -36,6 +36,7 @@ const BUBBLE_SIZE = 3;
 export default function LeaderboardPage() {
   const [selectedCategory, setSelectedCategory] = useState('overall');
   const [selectedLevel, setSelectedLevel] = useState('');
+  const [searchQuery, setSearchQuery] = useState('');
   const [leaderboard, setLeaderboard] = useState<LeaderboardUser[]>([]);
   const [levels, setLevels] = useState<Level[]>(defaultLevels as Level[]);
   const [loading, setLoading] = useState(true);
@@ -76,8 +77,11 @@ export default function LeaderboardPage() {
   };
 
   const sortedUsers = [...leaderboard].sort((a, b) => getCategoryValue(b) - getCategoryValue(a));
-  const league = sortedUsers.slice(0, LEAGUE_SIZE);
-  const bubble = sortedUsers.slice(LEAGUE_SIZE, LEAGUE_SIZE + BUBBLE_SIZE);
+  const filteredUsers = searchQuery.trim() 
+    ? sortedUsers.filter(u => u.displayName.toLowerCase().includes(searchQuery.toLowerCase()))
+    : sortedUsers;
+  const league = filteredUsers.slice(0, LEAGUE_SIZE);
+  const bubble = filteredUsers.slice(LEAGUE_SIZE, LEAGUE_SIZE + BUBBLE_SIZE);
 
   const getRankIcon = (rank: number) => {
     if (rank === 0) return <Crown size={24} className="text-amber-500" />;
@@ -110,55 +114,36 @@ export default function LeaderboardPage() {
             <h1 className="text-2xl font-bold text-gray-900">Leaderboard</h1>
           </div>
 
-          <div className="grid grid-cols-4 gap-3 mb-8">
-            <div className="sm:hidden col-span-4 mb-1">
-              <select
-                value={selectedCategory}
-                onChange={(e) => setSelectedCategory(e.target.value)}
-                className="w-full px-4 py-2.5 rounded-xl border border-gray-200 text-sm font-medium bg-white"
-              >
-                {categories.map((cat) => (
-                  <option key={cat.id} value={cat.id}>{cat.title}</option>
-                ))}
-              </select>
+          <div className="flex gap-2 mb-6">
+            <div className="relative flex-1">
+              <Search size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
+              <input
+                type="text"
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+                placeholder="Search learner..."
+                className="w-full pl-9 pr-3 py-1.5 rounded-lg border border-gray-200 text-xs bg-white"
+              />
             </div>
-            {categories.map((cat) => (
-              <button
-                key={cat.id}
-                onClick={() => setSelectedCategory(cat.id)}
-                className={`hidden sm:flex items-center justify-center gap-2 p-4 rounded-xl transition ${
-                  selectedCategory === cat.id
-                    ? 'bg-primary-600 text-white'
-                    : 'bg-white text-gray-700 border border-gray-200 hover:border-primary-300'
-                }`}
-              >
-                {cat.icon}
-                <span className="font-medium text-sm">{cat.title}</span>
-              </button>
-            ))}
-          </div>
-
-          <div className="flex gap-2 mb-8 overflow-x-auto pb-2">
-            <button
-              onClick={() => setSelectedLevel('')}
-              className={`px-4 py-2 rounded-full text-sm font-medium whitespace-nowrap transition ${
-                selectedLevel === '' ? 'bg-primary-600 text-white' : 'bg-white text-gray-700 border border-gray-200'
-              }`}
+            <select
+              value={selectedCategory}
+              onChange={(e) => setSelectedCategory(e.target.value)}
+              className="w-28 px-3 py-1.5 rounded-lg border border-gray-200 text-xs bg-white"
             >
-              All Levels
-            </button>
-            {levels.map((level) => (
-              <button
-                key={level.id}
-                onClick={() => setSelectedLevel(level.id)}
-                className={`flex items-center gap-2 px-4 py-2 rounded-full text-sm font-medium whitespace-nowrap transition ${
-                  selectedLevel === level.id ? 'bg-primary-600 text-white' : 'bg-white text-gray-700 border border-gray-200'
-                }`}
-              >
-                <Play size={14} />
-                {level.title}
-              </button>
-            ))}
+              {categories.map((cat) => (
+                <option key={cat.id} value={cat.id}>{cat.title}</option>
+              ))}
+            </select>
+            <select
+              value={selectedLevel}
+              onChange={(e) => setSelectedLevel(e.target.value)}
+              className="w-28 px-3 py-1.5 rounded-lg border border-gray-200 text-xs bg-white"
+            >
+              <option value="">All</option>
+              {levels.map((level) => (
+                <option key={level.id} value={level.id}>{level.title}</option>
+              ))}
+            </select>
           </div>
 
           {loading ? (
