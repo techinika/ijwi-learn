@@ -47,17 +47,10 @@ interface SubscriptionData {
   nextBillingDate: Date;
 }
 
-const defaultLevels: LevelData[] = [
-  { id: '1', slug: 'beginner', title: 'Beginner', description: 'Learn the basics of Kinyarwanda', price: 0, icon: 'graduation-cap', color: 'green', order: 1 },
-  { id: '2', slug: 'practice', title: 'Practice', description: 'AI-powered conversation practice', price: 9.99, icon: 'message-circle', color: 'blue', order: 2 },
-  { id: '3', slug: 'intermediate', title: 'Intermediate', description: 'Expand vocabulary and grammar rules', price: 14.99, icon: 'book-open', color: 'purple', order: 3 },
-  { id: '4', slug: 'fluent', title: 'Fluent', description: 'Stories and advanced content', price: 19.99, icon: 'book-marked', color: 'amber', order: 4 },
-];
-
 export default function Home() {
   const { user, userData, loading, signInWithGoogle, purchaseLevel } = useAuth();
   const [showFeatures, setShowFeatures] = useState(false);
-  const [levels, setLevels] = useState<LevelData[]>(defaultLevels);
+  const [levels, setLevels] = useState<LevelData[]>([]);
   const [paymentLevel, setPaymentLevel] = useState<LevelData | null>(null);
   const [levelsLoading, setLevelsLoading] = useState(true);
   const [subscriptions, setSubscriptions] = useState<SubscriptionData[]>([]);
