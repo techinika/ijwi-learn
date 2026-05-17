@@ -253,9 +253,7 @@ export default function VideosClient() {
               return (
                 <Link
                   key={video.id}
-                  href={video.videoUrl}
-                  target="_blank"
-                  rel="noopener noreferrer"
+                  href={`/videos/${video.id}`}
                   className="bg-white rounded-xl border-2 border-gray-200 hover:shadow-lg hover:border-rose-300 transition-all overflow-hidden block"
                 >
                   <div className="relative aspect-video bg-gray-900">
