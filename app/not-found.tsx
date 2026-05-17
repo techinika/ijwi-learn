@@ -1,5 +1,3 @@
-'use client';
-
 import Link from 'next/link';
 import { Home, Search, ArrowLeft } from 'lucide-react';
 
@@ -12,7 +10,7 @@ export default function NotFound() {
         </div>
         <h1 className="text-2xl font-bold text-gray-900 mb-3">Page Not Found</h1>
         <p className="text-gray-600 mb-8">
-          The page you're looking for doesn't exist or has been moved.
+          The page you&apos;re looking for doesn&apos;t exist or has been moved.
         </p>
         <div className="space-y-3">
           <Link
@@ -22,13 +20,13 @@ export default function NotFound() {
             <Home size={18} />
             Back to Home
           </Link>
-          <button
-            onClick={() => window.history.back()}
+          <Link
+            href="javascript:history.back()"
             className="flex items-center justify-center gap-2 w-full py-3 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 font-medium"
           >
             <ArrowLeft size={18} />
             Go Back
-          </button>
+          </Link>
         </div>
       </div>
     </div>

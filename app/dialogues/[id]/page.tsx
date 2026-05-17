@@ -1,12 +1,7 @@
-'use client';
-
-import { useState, useEffect } from 'react';
-import { useParams } from 'next/navigation';
+import { dbService, Dialogue } from '@/lib/database';
 import Link from 'next/link';
 import Navbar from '@/components/Navbar';
-import { dbService, Dialogue } from '@/lib/database';
 import { ArrowLeft, ChevronLeft, MessageSquare, Users } from 'lucide-react';
-import { Loading } from '@/app/AppLoading';
 
 const speakerColors = [
   'bg-blue-500',
@@ -15,38 +10,22 @@ const speakerColors = [
   'bg-purple-500',
 ];
 
-export default function DialoguePage() {
-  const params = useParams();
-  const id = params.id as string;
-  const [dialogue, setDialogue] = useState<Dialogue | null>(null);
-  const [loading, setLoading] = useState(true);
-
-  useEffect(() => {
-    loadDialogue();
-  }, [id]);
-
-  const loadDialogue = async () => {
-    try {
-      const d = await dbService.getDialogue(id);
-      setDialogue(d);
-    } catch (e) {
-      console.error('Failed to load dialogue', e);
-    }
-    setLoading(false);
-  };
-
-  if (loading) {
-    return (
-      <div className="min-h-screen bg-gray-50">
-        <Navbar />
-        <div className="pt-28 pb-12 px-4">
-          <div className="max-w-2xl mx-auto text-center">
-            <Loading text="Loading dialogue..." />
-          </div>
-        </div>
-      </div>
-    );
+export async function generateMetadata({ params }: { params: Promise<{ id: string }> }) {
+  const { id } = await params;
+  try {
+    const dialogue = await dbService.getDialogue(id);
+    return {
+      title: `${dialogue?.title || 'Dialogue'} - IJWI-LEARN`,
+      description: dialogue?.description || 'Practice Kinyarwanda dialogue.',
+    };
+  } catch {
+    return { title: 'Dialogue - IJWI-LEARN' };
   }
+}
+
+export default async function DialoguePage({ params }: { params: Promise<{ id: string }> }) {
+  const { id } = await params;
+  const dialogue = await dbService.getDialogue(id) as Dialogue | null;
 
   if (!dialogue) {
     return (
