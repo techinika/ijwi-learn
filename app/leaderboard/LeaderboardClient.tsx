@@ -1,10 +1,11 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import Link from 'next/link';
 import Navbar from '@/components/Navbar';
-import { Level, UserProfile } from '@/lib/database';
+import { dbService, Level, UserProfile } from '@/lib/database';
 import { ArrowLeft, Trophy, Medal, Crown, BookOpen, FileText, MessageCircle, Play, ChevronRight, Search } from 'lucide-react';
+import { Loading } from '@/app/AppLoading';
 
 const categories = [
   { id: 'overall', title: 'Overall', icon: <Crown size={20} /> },
@@ -16,17 +17,38 @@ const categories = [
 const LEAGUE_SIZE = 15;
 const BUBBLE_SIZE = 3;
 
-interface LeaderboardClientProps {
-  initialLeaderboard: UserProfile[];
-  initialLevels: Level[];
-}
-
-export default function LeaderboardClient({ initialLeaderboard, initialLevels }: LeaderboardClientProps) {
+export default function LeaderboardClient() {
   const [selectedCategory, setSelectedCategory] = useState('overall');
   const [selectedLevel, setSelectedLevel] = useState('');
   const [searchQuery, setSearchQuery] = useState('');
-  const [leaderboard] = useState<UserProfile[]>(initialLeaderboard);
-  const [levels] = useState<Level[]>(initialLevels);
+  const [leaderboard, setLeaderboard] = useState<UserProfile[]>([]);
+  const [levels, setLevels] = useState<Level[]>([]);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    loadData();
+  }, []);
+
+  const loadData = async () => {
+    try {
+      const [users, dbLevels] = await Promise.all([
+        dbService.getUsers(),
+        dbService.getLevels(),
+      ]);
+      setLeaderboard(users as UserProfile[]);
+      if (dbLevels.length > 0) {
+        setLevels(dbLevels);
+      }
+    } catch (error) {
+      console.log('Using fallback leaderboard data');
+      setLeaderboard([
+        { id: '1', displayName: 'John Smith', photoURL: '', totalPoints: 2500, testsCompleted: 15, vocabularyLearned: 200, consecutivePasses: 8 } as UserProfile,
+        { id: '2', displayName: 'Sarah Johnson', photoURL: '', totalPoints: 2200, testsCompleted: 12, vocabularyLearned: 180, consecutivePasses: 5 } as UserProfile,
+        { id: '3', displayName: 'Mike Davis', photoURL: '', totalPoints: 1800, testsCompleted: 10, vocabularyLearned: 150, consecutivePasses: 3 } as UserProfile,
+      ]);
+    }
+    setLoading(false);
+  };
 
   const getCategoryValue = (user: UserProfile) => {
     switch (selectedCategory) {
@@ -43,6 +65,19 @@ export default function LeaderboardClient({ initialLeaderboard, initialLevels }:
     : sortedUsers;
   const league = filteredUsers.slice(0, LEAGUE_SIZE);
   const bubble = filteredUsers.slice(LEAGUE_SIZE, LEAGUE_SIZE + BUBBLE_SIZE);
+
+  if (loading) {
+    return (
+      <div className="min-h-screen bg-gray-50">
+        <Navbar />
+        <div className="pt-28 pb-12 px-4">
+          <div className="max-w-4xl mx-auto text-center">
+            <Loading text="Loading leaderboard..." />
+          </div>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen bg-gray-50">

@@ -15,55 +15,58 @@ interface TestWithLevel extends Test {
 
 const TESTS_PER_PAGE = 8;
 
-interface TestsClientProps {
-  initialTests: Test[];
-  initialLevels: Level[];
-}
-
-export default function TestsClient({ initialTests, initialLevels }: TestsClientProps) {
+export default function TestsClient() {
   const { user, userData } = useAuth();
   const [filterLevel, setFilterLevel] = useState('all');
-  const [tests] = useState<TestWithLevel[]>(() => 
-    initialTests.map(test => {
-      const level = initialLevels.find(l => l.id === test.levelId);
+  const [tests, setTests] = useState<TestWithLevel[]>([]);
+  const [levels, setLevels] = useState<Level[]>([]);
+  const [testAttempts, setTestAttempts] = useState<TestAttempt[]>([]);
+  const [currentPage, setCurrentPage] = useState(1);
+  const [showHistory, setShowHistory] = useState(false);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    loadData();
+  }, [user]);
+
+  const loadData = async () => {
+    try {
+      const [dbTests, dbLevels] = await Promise.all([
+        dbService.getTests(),
+        dbService.getLevels(),
+      ]);
+      setLevels(dbLevels);
+
       const colorMap: Record<string, string> = {
         green: 'bg-emerald-500',
         blue: 'bg-primary-500',
         purple: 'bg-purple-500',
         amber: 'bg-amber-500',
       };
-      return {
-        ...test,
-        levelTitle: level?.title || 'Unknown',
-        levelColor: colorMap[level?.color || 'blue'] || 'bg-gray-500',
-      };
-    })
-  );
-  const [testAttempts, setTestAttempts] = useState<TestAttempt[]>([]);
-  const [currentPage, setCurrentPage] = useState(1);
-  const [showHistory, setShowHistory] = useState(false);
-  const [loading, setLoading] = useState(false);
 
-  const levelOptions = ['all', ...initialLevels.map(l => l.title)];
+      setTests(dbTests.map(test => {
+        const level = dbLevels.find(l => l.id === test.levelId);
+        return {
+          ...test,
+          levelTitle: level?.title || 'Unknown',
+          levelColor: colorMap[level?.color || 'blue'] || 'bg-gray-500',
+        };
+      }));
 
-  useEffect(() => {
-    if (user) {
-      loadAttempts();
-    }
-  }, [user]);
-
-  const loadAttempts = async () => {
-    if (!user) return;
-    try {
-      const attempts = await dbService.getTestAttempts(user.uid);
-      setTestAttempts(attempts);
+      if (user) {
+        const attempts = await dbService.getTestAttempts(user.uid);
+        setTestAttempts(attempts);
+      }
     } catch (e) {
-      console.error('Failed to load attempts', e);
+      console.error('Failed to load tests', e);
     }
+    setLoading(false);
   };
 
+  const levelOptions = ['all', ...levels.map(l => l.title)];
+
   const purchasedLevels = userData?.purchasedLevels || [];
-  const levelIdToOrder = new Map(initialLevels.map((l, idx) => [l.id, idx + 1]));
+  const levelIdToOrder = new Map(levels.map((l, idx) => [l.id, idx + 1]));
 
   const availableTests = tests.filter(t => {
     const levelOrder = levelIdToOrder.get(t.levelId);
@@ -73,7 +76,7 @@ export default function TestsClient({ initialTests, initialLevels }: TestsClient
   const filteredTests = filterLevel === 'all' 
     ? availableTests 
     : availableTests.filter(t => {
-        const level = initialLevels.find(l => l.id === t.levelId);
+        const level = levels.find(l => l.id === t.levelId);
         return level?.title === filterLevel;
       });
 
@@ -99,7 +102,20 @@ export default function TestsClient({ initialTests, initialLevels }: TestsClient
 
   const meritPoints = getMeritPoints();
 
-  if (initialTests.length === 0) {
+  if (loading) {
+    return (
+      <div className="min-h-screen bg-gray-50">
+        <Navbar />
+        <div className="pt-28 pb-12 px-4">
+          <div className="max-w-4xl mx-auto text-center">
+            <Loading text="Loading tests..." />
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  if (tests.length === 0) {
     return (
       <div className="min-h-screen bg-gray-50">
         <Navbar />

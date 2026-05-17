@@ -4,7 +4,8 @@ import { useState, useEffect } from "react";
 import Link from "next/link";
 import Navbar from "@/components/Navbar";
 import { useAuth } from "@/context/AuthContext";
-import { Video, Level, VideoCategory } from "@/lib/database";
+import { dbService, Video, Level, VideoCategory } from "@/lib/database";
+import { Loading } from "@/app/AppLoading";
 import {
   ArrowLeft,
   Play,
@@ -47,47 +48,59 @@ function getYouTubeEmbedUrl(url: string): string | null {
   return null;
 }
 
-interface VideosClientProps {
-  initialVideos: Video[];
-  initialLevels: Level[];
-  initialCategories: VideoCategory[];
-}
-
-export default function VideosClient({ initialVideos, initialLevels, initialCategories }: VideosClientProps) {
+export default function VideosClient() {
   const { userData } = useAuth();
   const [selectedLevel, setSelectedLevel] = useState<string>("All");
   const [selectedCategory, setSelectedCategory] = useState<string>("All");
   const [videos, setVideos] = useState<VideoWithLevel[]>([]);
   const [allVideos, setAllVideos] = useState<VideoWithLevel[]>([]);
-  const [levels] = useState<Level[]>(initialLevels);
-  const [categories] = useState<VideoCategory[]>(initialCategories);
+  const [levels, setLevels] = useState<Level[]>([]);
+  const [categories, setCategories] = useState<VideoCategory[]>([]);
+  const [loading, setLoading] = useState(true);
   const [currentPage, setCurrentPage] = useState(1);
 
   const purchasedLevelIds = userData?.purchasedLevels || [];
 
   useEffect(() => {
-    const colorMap: Record<string, string> = {
-      green: "bg-emerald-500",
-      blue: "bg-primary-500",
-      purple: "bg-purple-500",
-      amber: "bg-amber-500",
-    };
+    loadData();
+  }, [userData]);
 
-    const videosWithLevels: VideoWithLevel[] = initialVideos.map((video) => {
-      const level = initialLevels.find((l) => l.id === video.levelId);
-      const category = initialCategories.find((c) => c.slug === video.category);
-      return {
-        ...video,
-        levelTitle: level?.title || "Unknown",
-        levelColor: colorMap[level?.color || "gray"] || "bg-gray-500",
-        levelTextColor: `text-${level?.color || "gray"}-700`,
-        levelBgColor: `bg-${level?.color || "gray"}-100`,
-        categoryName: category?.name || video.category || "Uncategorized",
+  const loadData = async () => {
+    try {
+      const [dbVideos, dbLevels, dbCategories] = await Promise.all([
+        dbService.getVideos(),
+        dbService.getLevels(),
+        dbService.getVideoCategories({ isActive: true }),
+      ]);
+      setLevels(dbLevels);
+      setCategories(dbCategories);
+
+      const colorMap: Record<string, string> = {
+        green: "bg-emerald-500",
+        blue: "bg-primary-500",
+        purple: "bg-purple-500",
+        amber: "bg-amber-500",
       };
-    });
-    setAllVideos(videosWithLevels);
-    setVideos(videosWithLevels);
-  }, [initialVideos, initialLevels, initialCategories]);
+
+      const videosWithLevels: VideoWithLevel[] = dbVideos.map((video) => {
+        const level = dbLevels.find((l) => l.id === video.levelId);
+        const category = dbCategories.find((c) => c.slug === video.category);
+        return {
+          ...video,
+          levelTitle: level?.title || "Unknown",
+          levelColor: colorMap[level?.color || "gray"] || "bg-gray-500",
+          levelTextColor: `text-${level?.color || "gray"}-700`,
+          levelBgColor: `bg-${level?.color || "gray"}-100`,
+          categoryName: category?.name || video.category || "Uncategorized",
+        };
+      });
+      setAllVideos(videosWithLevels);
+      setVideos(videosWithLevels);
+    } catch (error) {
+      console.log("Error loading videos:", error);
+    }
+    setLoading(false);
+  };
 
   useEffect(() => {
     setCurrentPage(1);
@@ -146,6 +159,19 @@ export default function VideosClient({ initialVideos, initialLevels, initialCate
     (currentPage - 1) * VIDEOS_PER_PAGE,
     currentPage * VIDEOS_PER_PAGE
   );
+
+  if (loading) {
+    return (
+      <div className="min-h-screen bg-gray-50">
+        <Navbar />
+        <main className="pt-28 pb-12 px-4">
+          <div className="max-w-4xl mx-auto text-center">
+            <Loading text="Loading videos..." />
+          </div>
+        </main>
+      </div>
+    );
+  }
 
   if (paginatedVideos.length === 0) {
     return (
