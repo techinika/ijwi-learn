@@ -5,7 +5,7 @@ import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import Navbar from '@/components/Navbar';
 import { Loading, FetchLoading } from '@/app/AppLoading';
-import { ArrowLeft, ChevronLeft, ChevronRight, BookOpen, Shuffle, RefreshCw, Filter } from 'lucide-react';
+import { ArrowLeft, ChevronLeft, ChevronRight, BookOpen, Shuffle, RefreshCw } from 'lucide-react';
 import { useAuth } from '@/context/AuthContext';
 import { dbService, Category, Level, Difficulty, Vocabulary } from '@/lib/database';
 import type { Vocabulary as VocabType } from '@/lib/database';
@@ -35,19 +35,24 @@ export default function LevelPage({ params }: { params: Promise<{ slug: string }
   const [viewedWords, setViewedWords] = useState<Set<string>>(new Set());
 
   useEffect(() => {
-    loadData();
+    let mounted = true;
+    const load = async () => {
+      if (!mounted) return;
+      setLoading(true);
+      await loadData();
+      if (mounted) setLoading(false);
+    };
+    load();
+    return () => { mounted = false; };
   }, [slug]);
 
   useEffect(() => {
-    if (activeTopic) {
-      loadVocabulary();
+    if (activeTopic && !loading) {
+      setCurrentIndex(0);
       setViewedWords(new Set());
+      loadVocabulary();
     }
-  }, [activeTopic]);
-
-  useEffect(() => {
-    setActiveDifficulty('');
-  }, [activeTopic]);
+  }, [activeTopic, activeDifficulty]);
 
   useEffect(() => {
     if (!user || !vocabulary[currentIndex]?.id) return;
@@ -103,12 +108,12 @@ export default function LevelPage({ params }: { params: Promise<{ slug: string }
       );
 
       const topicItems: TopicItem[] = [
-        { id: 'all', title: 'All', slug: '', icon: <Shuffle size={20} /> },
+        { id: 'all', title: 'All', slug: '', icon: <Shuffle size={16} /> },
         ...levelCategories.map((cat) => ({
           id: cat.id,
           title: cat.name,
           slug: cat.slug,
-          icon: <BookOpen size={20} />,
+          icon: <BookOpen size={16} />,
         })),
       ];
 
@@ -171,17 +176,17 @@ export default function LevelPage({ params }: { params: Promise<{ slug: string }
       <Navbar />
       <main className="pt-28 pb-12 px-4">
         <div className="max-w-3xl mx-auto">
-          <div className="flex items-center gap-4 mb-8">
+          <div className="flex items-center gap-4 mb-6">
             <Link href="/learn" className="flex items-center gap-2 text-primary-600 hover:underline font-medium">
-              <ArrowLeft size={20} />
+              <ArrowLeft size={18} />
               Back
             </Link>
           </div>
 
           {level && (
-            <div className="bg-gradient-to-r from-primary-600 to-primary-700 rounded-2xl p-6 mb-8 text-white">
-              <h1 className="text-2xl font-bold mb-2">{level.title}</h1>
-              <p className="text-primary-100">{level.description}</p>
+            <div className="bg-gradient-to-r from-primary-600 to-primary-700 rounded-xl p-5 mb-6 text-white">
+              <h1 className="text-xl font-bold mb-1">{level.title}</h1>
+              <p className="text-primary-100 text-sm">{level.description}</p>
             </div>
           )}
 
@@ -189,36 +194,29 @@ export default function LevelPage({ params }: { params: Promise<{ slug: string }
             <Loading fullScreen />
           ) : (
             <>
-              <div className="flex gap-3 overflow-x-auto pb-4 mb-6 scrollbar-thin">
+              <div className="flex gap-2 overflow-x-auto pb-3 mb-4 scrollbar-thin">
                 {topics.map((topic) => (
                   <button
                     key={topic.id}
                     onClick={() => { setActiveTopic(topic.id); }}
-                    className={`flex flex-col items-center gap-2 p-3 rounded-xl transition-all shrink-0 min-w-[100px] ${
+                    className={`px-3 py-1.5 rounded-lg text-xs font-medium transition shrink-0 ${
                       activeTopic === topic.id
-                        ? 'bg-primary-600 text-white shadow-lg'
-                        : 'bg-white border border-gray-100 text-gray-700 hover:border-primary-200'
+                        ? 'bg-primary-600 text-white'
+                        : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
                     }`}
                   >
-                    <div className="w-8 h-8 rounded-lg bg-white/20 flex items-center justify-center">
-                      {topic.icon}
-                    </div>
-                    <span className="font-medium text-xs">{topic.title}</span>
+                    {topic.title}
                   </button>
                 ))}
               </div>
 
               {difficulties.length > 0 && (
-                <div className="mb-6">
-                  <div className="flex items-center gap-2 mb-2">
-                    <Filter size={16} className="text-gray-400" />
-                    <span className="text-sm font-medium text-gray-600">Difficulty:</span>
-                  </div>
+                <div className="mb-4">
                   <div className="sm:hidden">
                     <select
                       value={activeDifficulty || ''}
                       onChange={(e) => setActiveDifficulty(e.target.value)}
-                      className="w-full px-4 py-2.5 rounded-xl border border-gray-200 text-sm font-medium bg-white"
+                      className="w-full px-3 py-1.5 rounded-lg border border-gray-200 text-xs bg-white"
                     >
                       <option value="">All</option>
                       {difficulties.map(d => (
@@ -226,13 +224,13 @@ export default function LevelPage({ params }: { params: Promise<{ slug: string }
                       ))}
                     </select>
                   </div>
-                  <div className="hidden sm:flex gap-2 flex-wrap">
+                  <div className="hidden sm:flex gap-1.5 overflow-x-auto pb-2 scrollbar-thin">
                     <button
                       onClick={() => setActiveDifficulty('')}
-                      className={`px-4 py-2 rounded-full text-sm font-medium transition ${
+                      className={`px-2 py-1 rounded-md text-xs font-medium transition shrink-0 ${
                         !activeDifficulty
                           ? 'bg-gray-800 text-white'
-                          : 'bg-white text-gray-700 border border-gray-200 hover:bg-gray-50'
+                          : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
                       }`}
                     >
                       All
@@ -241,10 +239,10 @@ export default function LevelPage({ params }: { params: Promise<{ slug: string }
                       <button
                         key={d.id}
                         onClick={() => setActiveDifficulty(d.id)}
-                        className={`px-4 py-2 rounded-full text-sm font-medium transition ${
+                        className={`px-2 py-1 rounded-md text-xs font-medium transition shrink-0 ${
                           activeDifficulty === d.id
                             ? 'bg-primary-600 text-white'
-                            : 'bg-white text-gray-700 border border-gray-200 hover:bg-gray-50'
+                            : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
                         }`}
                       >
                         {d.name}
@@ -255,74 +253,74 @@ export default function LevelPage({ params }: { params: Promise<{ slug: string }
               )}
 
               {items.length === 0 ? (
-                <div className="text-center py-16 bg-white rounded-2xl border border-gray-200">
-                  <BookOpen size={48} className="mx-auto mb-4 text-gray-300" />
-                  <h3 className="text-lg font-semibold text-gray-900 mb-2">No Vocabulary Yet</h3>
-                  <p className="text-gray-500">Vocabulary will appear here once added by an admin.</p>
+                <div className="text-center py-12 bg-white rounded-xl border border-gray-200">
+                  <BookOpen size={40} className="mx-auto mb-3 text-gray-300" />
+                  <h3 className="text-base font-semibold text-gray-900 mb-1">No Vocabulary Yet</h3>
+                  <p className="text-gray-500 text-sm">Vocabulary will appear here once added by an admin.</p>
                 </div>
               ) : (
                 <div className="relative">
-                  <div className="bg-white rounded-2xl shadow-lg border border-gray-200 overflow-hidden">
-                    <div className="bg-gradient-to-r from-emerald-500 to-emerald-600 p-4 flex justify-between items-center">
-                      <span className="text-white font-medium">{currentIndex + 1} / {items.length}</span>
+                  <div className="bg-white rounded-xl shadow border border-gray-200 overflow-hidden">
+                    <div className="bg-gradient-to-r from-emerald-500 to-emerald-600 p-3 flex justify-between items-center">
+                      <span className="text-white text-sm font-medium">{currentIndex + 1} / {items.length}</span>
                       <button
                         onClick={loadVocabulary}
-                        className="flex items-center gap-1 text-white/80 hover:text-white text-sm"
+                        className="flex items-center gap-1 text-white/80 hover:text-white text-xs"
                       >
-                        <RefreshCw size={16} />
+                        <RefreshCw size={14} />
                         Refresh
                       </button>
                     </div>
 
-                    <div className="p-8 min-h-[320px] flex items-center justify-center">
+                    <div className="p-6 min-h-[260px] flex items-center justify-center">
                       <FetchLoading isLoading={fetchingVocab} fallback={
                         <div className="text-center">
-                          <div className="animate-spin w-8 h-8 border-3 border-primary-600 border-t-transparent rounded-full mx-auto mb-3"></div>
-                          <p className="text-sm text-gray-500">Loading vocabulary...</p>
+                          <div className="animate-spin w-6 h-6 border-2 border-primary-600 border-t-transparent rounded-full mx-auto mb-2"></div>
+                          <p className="text-xs text-gray-500">Loading...</p>
                         </div>
                       }>
                         <div className="text-center w-full">
-                          <div className="text-4xl font-bold text-gray-900 mb-4" style={{ fontFamily: 'Georgia, serif' }}>
+                          <div className="text-2xl font-bold text-gray-900 mb-2" style={{ fontFamily: 'Georgia, serif' }}>
                             {getDisplayWord(currentItem)}
                           </div>
                           {currentItem.pronunciation && (
-                            <div className="text-lg text-gray-400 italic mb-4">
+                            <div className="text-sm text-gray-400 mb-2">
                               [{currentItem.pronunciation}]
                             </div>
                           )}
-                          <div className="text-2xl text-emerald-600">
+                          <div className="text-lg text-emerald-600">
                             {getTranslation(currentItem)}
                           </div>
                         </div>
                       </FetchLoading>
                     </div>
 
-                    <div className="border-t border-gray-100 p-4 flex justify-between">
+                    <div className="border-t border-gray-100 p-3 flex justify-between">
                       <button
                         onClick={prevCard}
                         disabled={items.length <= 1}
-                        className="flex items-center gap-2 px-4 py-2 text-gray-600 hover:bg-gray-100 rounded-lg disabled:opacity-50 disabled:cursor-not-allowed"
+                        className="flex items-center gap-1 px-3 py-1.5 text-gray-600 hover:bg-gray-100 rounded-lg text-sm disabled:opacity-50 disabled:cursor-not-allowed"
                       >
-                        <ChevronLeft size={20} />
-                        Previous
+                        <ChevronLeft size={16} />
+                        Prev
                       </button>
                       <button
                         onClick={nextCard}
                         disabled={items.length <= 1}
-                        className="flex items-center gap-2 px-4 py-2 bg-primary-600 text-white rounded-lg hover:bg-primary-700 disabled:opacity-50 disabled:cursor-not-allowed"
+                        className="flex items-center gap-1 px-3 py-1.5 bg-primary-600 text-white rounded-lg hover:bg-primary-700 text-sm disabled:opacity-50 disabled:cursor-not-allowed"
                       >
                         Next
-                        <ChevronRight size={20} />
+                        <ChevronRight size={16} />
                       </button>
                     </div>
                   </div>
 
-                  <div className="flex justify-center gap-2 mt-4 flex-wrap">
+                  <div className="flex justify-center gap-1.5 mt-3 flex-wrap">
                     {Array.from({ length: Math.min(items.length, 10) }).map((_, i) => (
                       <button
                         key={i}
                         onClick={() => setCurrentIndex(i)}
-                        className={`w-4 h-4 sm:w-2.5 sm:h-2.5 rounded-full transition-colors ${
+                        className={`w-3 h-3 rounded-full transition-colors ${
                           i === currentIndex ? 'bg-primary-600' : 'bg-gray-300'
                         }`}
                         aria-label={`Go to word ${i + 1}`}
@@ -330,7 +328,7 @@ export default function LevelPage({ params }: { params: Promise<{ slug: string }
                     ))}
                     {items.length > 10 && (
                       <span className="text-xs text-gray-400 self-center ml-1">
-                        +{items.length - 10} more
+                        +{items.length - 10}
                       </span>
                     )}
                   </div>

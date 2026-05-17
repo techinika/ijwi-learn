@@ -183,31 +183,30 @@ export default function VideosPage() {
             </p>
           </div>
 
-          <div className="space-y-3 my-3">
-            <div className="flex flex-col sm:flex-row gap-3">
+          <div className="space-y-2 my-2">
+            <div className="flex flex-col sm:flex-row gap-2">
               {levelOptions.length > 1 && (
                 <div className="flex-1">
                   <div className="sm:hidden">
                     <select
                       value={selectedLevel}
                       onChange={(e) => setSelectedLevel(e.target.value)}
-                      className="w-full px-4 py-2.5 rounded-xl border border-gray-200 text-sm font-medium bg-white"
+                      className="w-full px-3 py-1.5 rounded-lg border border-gray-200 text-xs bg-white"
                     >
                       {levelOptions.map((level) => (
                         <option key={level} value={level}>{level}</option>
                       ))}
                     </select>
                   </div>
-                  <div className="hidden sm:flex gap-2 flex-wrap" key="level">
-                    <span className="text-sm font-medium text-gray-700 self-center">Level:</span>
+                  <div className="hidden sm:flex gap-1.5 overflow-x-auto pb-1 scrollbar-thin" key="level">
                     {levelOptions.map((level) => (
                       <button
                         key={level}
                         onClick={() => setSelectedLevel(level)}
-                        className={`px-4 py-2 rounded-full text-sm font-semibold transition ${
+                        className={`px-2.5 py-1 rounded-md text-xs font-medium transition shrink-0 ${
                           selectedLevel === level
-                            ? "bg-primary-600 text-white shadow-md"
-                            : "bg-white text-gray-700 border border-gray-200 hover:border-primary-300 hover:bg-primary-50"
+                            ? "bg-primary-600 text-white"
+                            : "bg-gray-100 text-gray-600 hover:bg-gray-200"
                         }`}
                       >
                         {level}
@@ -222,23 +221,22 @@ export default function VideosPage() {
                     <select
                       value={selectedCategory}
                       onChange={(e) => setSelectedCategory(e.target.value)}
-                      className="w-full px-4 py-2.5 rounded-xl border border-gray-200 text-sm font-medium bg-white"
+                      className="w-full px-3 py-1.5 rounded-lg border border-gray-200 text-xs bg-white"
                     >
                       {categoryOptions.map((cat) => (
                         <option key={cat} value={cat}>{cat}</option>
                       ))}
                     </select>
                   </div>
-                  <div className="hidden sm:flex gap-2 flex-wrap">
-                    <span className="text-sm font-medium text-gray-700 self-center">Category:</span>
+                  <div className="hidden sm:flex gap-1.5 overflow-x-auto pb-1 scrollbar-thin">
                     {categoryOptions.map((cat) => (
                       <button
                         key={cat}
                         onClick={() => setSelectedCategory(cat)}
-                        className={`px-4 py-2 rounded-full text-sm font-semibold transition ${
+                        className={`px-2.5 py-1 rounded-md text-xs font-medium transition shrink-0 ${
                           selectedCategory === cat
-                            ? "bg-emerald-600 text-white shadow-md"
-                            : "bg-white text-gray-700 border border-gray-200 hover:border-emerald-300 hover:bg-emerald-50"
+                            ? "bg-emerald-600 text-white"
+                            : "bg-gray-100 text-gray-600 hover:bg-gray-200"
                         }`}
                       >
                         {cat}
