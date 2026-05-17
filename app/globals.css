@@ -72,10 +72,10 @@ p {
 }
 
 button, .btn {
-  font-size: 14px;
+  font-size: 13px;
   font-weight: 500;
-  padding: 10px 20px;
-  border-radius: 8px;
+  padding: 8px 16px;
+  border-radius: 6px;
   cursor: pointer;
   transition: all 200ms ease-in-out;
 }
@@ -109,14 +109,14 @@ button, .btn {
 
 .card {
   background: var(--surface);
-  border-radius: 12px;
-  padding: 20px;
-  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
+  border-radius: 8px;
+  padding: 16px;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
   transition: all 200ms ease-in-out;
 }
 
 .card:hover {
-  box-shadow: 0 8px 16px rgba(0, 0, 0, 0.08);
+  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.08);
   transform: translateY(-1px);
 }
 
@@ -145,10 +145,10 @@ button, .btn {
 }
 
 .input {
-  font-size: 14px;
-  padding: 10px 14px;
+  font-size: 13px;
+  padding: 8px 12px;
   border: 1px solid #E5E7EB;
-  border-radius: 8px;
+  border-radius: 6px;
   width: 100%;
   transition: border-color 200ms ease-in-out;
 }
@@ -186,14 +186,15 @@ button, .btn {
 }
 
 @media (max-width: 640px) {
-  body { font-size: 14px; }
-  h1 { font-size: 24px; }
-  h2 { font-size: 20px; }
-  h3 { font-size: 16px; }
-  p { font-size: 14px; }
-  button, .btn { font-size: 13px; padding: 8px 16px; }
-  .input { font-size: 14px; padding: 8px 12px; }
+  body { font-size: 13px; }
+  h1 { font-size: 22px; }
+  h2 { font-size: 18px; }
+  h3 { font-size: 15px; }
+  p { font-size: 13px; }
+  button, .btn { font-size: 12px; padding: 6px 12px; border-radius: 5px; }
+  .input, select { font-size: 12px; padding: 6px 10px; border-radius: 5px; }
   .container { padding: 0 12px; }
+  .card { border-radius: 6px; padding: 12px; }
 }
 
 @keyframes fadeIn {
