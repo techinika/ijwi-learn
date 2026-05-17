@@ -189,21 +189,21 @@ export default function LevelPage({ params }: { params: Promise<{ slug: string }
             <Loading fullScreen />
           ) : (
             <>
-              <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
+              <div className="flex gap-3 overflow-x-auto pb-4 mb-6 scrollbar-thin">
                 {topics.map((topic) => (
                   <button
                     key={topic.id}
                     onClick={() => { setActiveTopic(topic.id); }}
-                    className={`flex flex-col items-center gap-3 p-4 rounded-2xl transition-all ${
+                    className={`flex flex-col items-center gap-2 p-3 rounded-xl transition-all shrink-0 min-w-[100px] ${
                       activeTopic === topic.id
                         ? 'bg-primary-600 text-white shadow-lg'
-                        : 'bg-white border-2 border-gray-100 text-gray-700 hover:border-primary-200 hover:shadow-md'
+                        : 'bg-white border border-gray-100 text-gray-700 hover:border-primary-200'
                     }`}
                   >
-                    <div className="w-10 h-10 rounded-xl bg-white/20 flex items-center justify-center">
+                    <div className="w-8 h-8 rounded-lg bg-white/20 flex items-center justify-center">
                       {topic.icon}
                     </div>
-                    <span className="font-semibold text-sm">{topic.title}</span>
+                    <span className="font-medium text-xs">{topic.title}</span>
                   </button>
                 ))}
               </div>

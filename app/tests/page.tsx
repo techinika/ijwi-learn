@@ -346,18 +346,20 @@ function TestsPageContent() {
 
           <FetchLoading isLoading={loading} fallback={<Loading text="Loading tests..." />}>
             <div className="flex items-center justify-between mb-6">
-              <div className="flex gap-2 flex-wrap">
-                <span className="text-sm font-medium text-gray-700 self-center">Filter:</span>
-                <div className="sm:hidden w-full">
-                  <select
-                    value={filterLevel}
-                    onChange={(e) => setFilterLevel(e.target.value)}
-                    className="w-full px-4 py-2 rounded-xl border border-gray-200 text-sm font-medium bg-white"
-                  >
-                    {levelOptions.map(level => (
-                      <option key={level} value={level}>{level === 'all' ? 'All Levels' : level}</option>
-                    ))}
-                  </select>
+<div className="flex gap-2 overflow-x-auto pb-2 scrollbar-thin">
+                  {levelOptions.map(level => (
+                    <button
+                      key={level}
+                      onClick={() => setFilterLevel(level)}
+                      className={`px-3 py-1.5 rounded-full text-xs font-medium transition shrink-0 ${
+                        filterLevel === level
+                          ? 'bg-primary-600 text-white'
+                          : 'bg-white text-gray-700 border border-gray-200 hover:bg-gray-50'
+                      }`}
+                    >
+                      {level === 'all' ? 'All Levels' : level}
+                    </button>
+                  ))}
                 </div>
                 <div className="hidden sm:flex gap-2 flex-wrap">
                   {levelOptions.map(level => (
