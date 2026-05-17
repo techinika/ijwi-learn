@@ -183,70 +183,30 @@ export default function VideosPage() {
             </p>
           </div>
 
-          <div className="space-y-2 my-2">
-            <div className="flex flex-col sm:flex-row gap-2">
+          <div className="flex gap-2 my-2">
               {levelOptions.length > 1 && (
-                <div className="flex-1">
-                  <div className="sm:hidden">
-                    <select
-                      value={selectedLevel}
-                      onChange={(e) => setSelectedLevel(e.target.value)}
-                      className="w-full px-3 py-1.5 rounded-lg border border-gray-200 text-xs bg-white"
-                    >
-                      {levelOptions.map((level) => (
-                        <option key={level} value={level}>{level}</option>
-                      ))}
-                    </select>
-                  </div>
-                  <div className="hidden sm:flex gap-1.5 overflow-x-auto pb-1 scrollbar-thin" key="level">
-                    {levelOptions.map((level) => (
-                      <button
-                        key={level}
-                        onClick={() => setSelectedLevel(level)}
-                        className={`px-2.5 py-1 rounded-md text-xs font-medium transition shrink-0 ${
-                          selectedLevel === level
-                            ? "bg-primary-600 text-white"
-                            : "bg-gray-100 text-gray-600 hover:bg-gray-200"
-                        }`}
-                      >
-                        {level}
-                      </button>
-                    ))}
-                  </div>
-                </div>
+                <select
+                  value={selectedLevel}
+                  onChange={(e) => setSelectedLevel(e.target.value)}
+                  className="flex-1 px-3 py-1.5 rounded-lg border border-gray-200 text-xs bg-white"
+                >
+                  {levelOptions.map((level) => (
+                    <option key={level} value={level}>{level}</option>
+                  ))}
+                </select>
               )}
               {categoryOptions.length > 1 && (
-                <div className="flex-1">
-                  <div className="sm:hidden">
-                    <select
-                      value={selectedCategory}
-                      onChange={(e) => setSelectedCategory(e.target.value)}
-                      className="w-full px-3 py-1.5 rounded-lg border border-gray-200 text-xs bg-white"
-                    >
-                      {categoryOptions.map((cat) => (
-                        <option key={cat} value={cat}>{cat}</option>
-                      ))}
-                    </select>
-                  </div>
-                  <div className="hidden sm:flex gap-1.5 overflow-x-auto pb-1 scrollbar-thin">
-                    {categoryOptions.map((cat) => (
-                      <button
-                        key={cat}
-                        onClick={() => setSelectedCategory(cat)}
-                        className={`px-2.5 py-1 rounded-md text-xs font-medium transition shrink-0 ${
-                          selectedCategory === cat
-                            ? "bg-emerald-600 text-white"
-                            : "bg-gray-100 text-gray-600 hover:bg-gray-200"
-                        }`}
-                      >
-                        {cat}
-                      </button>
-                    ))}
-                  </div>
-                </div>
+                <select
+                  value={selectedCategory}
+                  onChange={(e) => setSelectedCategory(e.target.value)}
+                  className="flex-1 px-3 py-1.5 rounded-lg border border-gray-200 text-xs bg-white"
+                >
+                  {categoryOptions.map((cat) => (
+                    <option key={cat} value={cat}>{cat}</option>
+                  ))}
+                </select>
               )}
             </div>
-          </div>
 
           {loading ? (
             <div className="text-center py-16">

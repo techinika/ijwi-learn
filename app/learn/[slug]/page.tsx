@@ -194,63 +194,30 @@ export default function LevelPage({ params }: { params: Promise<{ slug: string }
             <Loading fullScreen />
           ) : (
             <>
-              <div className="flex gap-2 overflow-x-auto pb-3 mb-4 scrollbar-thin">
-                {topics.map((topic) => (
-                  <button
-                    key={topic.id}
-                    onClick={() => { setActiveTopic(topic.id); }}
-                    className={`px-3 py-1.5 rounded-lg text-xs font-medium transition shrink-0 ${
-                      activeTopic === topic.id
-                        ? 'bg-primary-600 text-white'
-                        : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
-                    }`}
-                  >
-                    {topic.title}
-                  </button>
-                ))}
-              </div>
+              <div className="flex gap-2 mb-4">
+                <select
+                  value={activeTopic}
+                  onChange={(e) => setActiveTopic(e.target.value)}
+                  className="flex-1 px-3 py-1.5 rounded-lg border border-gray-200 text-xs bg-white"
+                >
+                  {topics.map(topic => (
+                    <option key={topic.id} value={topic.id}>{topic.title}</option>
+                  ))}
+                </select>
 
-              {difficulties.length > 0 && (
-                <div className="mb-4">
-                  <div className="sm:hidden">
-                    <select
-                      value={activeDifficulty || ''}
-                      onChange={(e) => setActiveDifficulty(e.target.value)}
-                      className="w-full px-3 py-1.5 rounded-lg border border-gray-200 text-xs bg-white"
-                    >
-                      <option value="">All</option>
-                      {difficulties.map(d => (
-                        <option key={d.id} value={d.id}>{d.name}</option>
-                      ))}
-                    </select>
-                  </div>
-                  <div className="hidden sm:flex gap-1.5 overflow-x-auto pb-2 scrollbar-thin">
-                    <button
-                      onClick={() => setActiveDifficulty('')}
-                      className={`px-2 py-1 rounded-md text-xs font-medium transition shrink-0 ${
-                        !activeDifficulty
-                          ? 'bg-gray-800 text-white'
-                          : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
-                      }`}
-                    >
-                      All
-                    </button>
+                {difficulties.length > 0 && (
+                  <select
+                    value={activeDifficulty || ''}
+                    onChange={(e) => setActiveDifficulty(e.target.value)}
+                    className="w-28 px-3 py-1.5 rounded-lg border border-gray-200 text-xs bg-white"
+                  >
+                    <option value="">All</option>
                     {difficulties.map(d => (
-                      <button
-                        key={d.id}
-                        onClick={() => setActiveDifficulty(d.id)}
-                        className={`px-2 py-1 rounded-md text-xs font-medium transition shrink-0 ${
-                          activeDifficulty === d.id
-                            ? 'bg-primary-600 text-white'
-                            : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
-                        }`}
-                      >
-                        {d.name}
-                      </button>
+                      <option key={d.id} value={d.id}>{d.name}</option>
                     ))}
-                  </div>
-                </div>
-              )}
+                  </select>
+                )}
+              </div>
 
               {items.length === 0 ? (
                 <div className="text-center py-12 bg-white rounded-xl border border-gray-200">
