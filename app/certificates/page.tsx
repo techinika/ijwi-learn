@@ -109,15 +109,18 @@ export default function CertificatesPage() {
 
   const getLevelInfo = (levelId: number) => {
     const level = levels.find(l => l.id === levelId.toString());
-    if (!level) return { icon: Award, color: 'bg-gray-500' };
+    if (!level) return { icon: Award, color: 'bg-gray-500', name: '' };
     return {
       icon: Award,
       color: level.color === 'green' ? 'bg-emerald-500' : 
              level.color === 'blue' ? 'bg-primary-500' : 
              level.color === 'purple' ? 'bg-purple-500' : 
              level.color === 'amber' ? 'bg-amber-500' : 'bg-gray-500',
+      name: level.title,
     };
   };
+
+  const getLevelName = (cert: UserCertificate) => cert.levelName || getLevelInfo(cert.levelId).name || 'Level';
 
   return (
     <div className="min-h-screen bg-gray-50">
@@ -158,7 +161,7 @@ export default function CertificatesPage() {
                               <LevelIcon size={24} />
                             </div>
                             <div className="min-w-0">
-                              <h3 className="font-semibold text-gray-900">{cert.levelName} Certificate</h3>
+                              <h3 className="font-semibold text-gray-900">{getLevelName(cert)} Certificate</h3>
                               <div className="flex flex-col sm:flex-row sm:items-center gap-1 sm:gap-3 mt-1">
                                 <span className="text-gray-500 text-sm">
                                   {formatDate(cert.completedAt)}
@@ -275,7 +278,7 @@ export default function CertificatesPage() {
               <div className="w-full max-w-[600px]">
                 <Certificate
                   userName={user.displayName || 'Learner'}
-                  level={viewingCertificate.levelName}
+                  level={getLevelName(viewingCertificate)}
                   score={viewingCertificate.score}
                   date={formatDate(viewingCertificate.completedAt)}
                   certificateId={viewingCertificate.certificateId || generateCertificateId(user.uid, viewingCertificate.levelName)}
